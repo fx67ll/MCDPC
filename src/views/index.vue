@@ -7,7 +7,6 @@
 <script>
 	import FlipClock from 'flipclock';
 	import 'flipclock/dist/flipclock.css';
-	import moment from 'moment';
 	export default {
 		name: 'fx67llIndex',
 		data() {
@@ -42,12 +41,14 @@
 				// setTimeout(function() {
 				// 	clock.face = 'Counter';
 				// }, 3000);
-				clock.on('start', () => {
-					console.log("时钟开始运行");
-				});
-				clock.on('stop', function() {
-					console.log("时钟停止运行");
-				})
+				// 监听开始
+				// clock.on('start', () => {
+				// 	console.log("时钟开始运行");
+				// });
+				// 监听结束
+				// clock.on('stop', function() {
+				// 	console.log("时钟停止运行");
+				// });
 			}
 		}
 	};
