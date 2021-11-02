@@ -26,7 +26,7 @@
 					language: {
 						'years': '年',
 						'months': '月',
-						'days': '预计上线',
+						'days': '预计上线日',
 						'hours': '時',
 						'minutes': '分',
 						'seconds': '秒'
