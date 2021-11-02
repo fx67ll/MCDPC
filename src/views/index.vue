@@ -36,7 +36,6 @@
 					// stopAt: 10,  // 多少秒后停止，不能是倒计时模式  
 					countdown: true, // true为倒计时
 				});
-				console.log(clock.getDays);
 				// 切换主题
 				// setTimeout(function() {
 				// 	clock.face = 'Counter';
