@@ -18,7 +18,7 @@
 		methods: {
 			initClock() {
 				const el = document.querySelector('.fx67ll-clock');
-				const clock = new FlipClock(el, new Date('2021/12/31 24:00:00'), {
+				const clock = new FlipClock(el, new Date(2021, 12, 31, 24, 0, 0, 0), {
 					face: 'DayCounter', // 类型  
 					showSeconds: true, // 显示秒数  
 					showLabels: true, // 显示文字标识  
@@ -30,7 +30,7 @@
 						'hours': '時',
 						'minutes': '分',
 						'seconds': '秒'
-					},  
+					},
 					// autoStart: false, // 是否自动开始计时，默认是true  
 					// showSeconds: false, // 是否显示秒数，默认是true  
 					// stopAt: 10,  // 多少秒后停止，不能是倒计时模式  
