@@ -18,7 +18,7 @@
 		methods: {
 			initClock() {
 				const el = document.querySelector('.fx67ll-clock');
-				const clock = new FlipClock(el, new Date(2021, 12, 31, 24, 0, 0, 0), {
+				const clock = new FlipClock(el, new Date(2021, 11, 31, 24, 0, 0, 0), {
 					face: 'DayCounter', // 类型  
 					showSeconds: true, // 显示秒数  
 					showLabels: true, // 显示文字标识  

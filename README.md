@@ -7,6 +7,7 @@ Map & Chart Data Projects Collection
 ## 0.1.2.20211104  
 * 更换 `favicon.ico` 图标  
 * 删除不必要的依赖  
+* 修复倒计时间错误的问题
 
 ## 0.1.1.20211102  
 * 使用`FlipClock.js`上线倒计时提示  
