@@ -17,6 +17,11 @@ export const fx67llRoutes = [{
 		path: '/',
 		name: 'index',
 		component: () => import('@v/index.vue') //首页
+	},
+	{
+		path: '/back',
+		name: 'back',
+		component: () => import('@v/index-back.vue') //上线倒计时
 	}
 ]
 
