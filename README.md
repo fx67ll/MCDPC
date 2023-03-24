@@ -9,3 +9,6 @@ Map & Chart Data Projects Collection
 * 高德地图实现省市切换？
 	+ [这个效果以前想做没做出来啊](https://www.html5tricks.com/echarts-html5-canvas-map.html)  
 	+ [这个效果可以切换全国和地级市](https://www.html5tricks.com/html5-canvas-china-map.html)  
+* 更多参考示例
+	+ [智慧充电](https://segmentfault.com/a/1190000043346767)  
+	+ [智慧工地](https://www.shuzixs.com/#/works/detail/1641)  
