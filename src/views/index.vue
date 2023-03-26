@@ -20,7 +20,17 @@
 			</div>
 			<div class="fx67ll-link-item"><router-link tag="span" to="/test">Code Mirror</router-link></div>
 			<div class="fx67ll-link-item" v-show="isDev"><router-link tag="span" to="/devtest">Component Test Tool</router-link></div>
+
+			<div class="fx67ll-link-item">Please Waiting Still Dev......</div>
 		</div>
+		<iframe
+			class="fx67ll-background"
+			src="https://test.fx67ll.com/fx67ll-background-collection/html/borealSky/borealSky.html"
+			width="100%"
+			height="100%"
+			frameborder="0"
+			scrolling="no"
+		></iframe>
 		<div class="fx67ll-footer">
 			Designed & Powered by
 			<a href="https://fx67ll.com" target="_blank">fx67ll</a>
@@ -57,6 +67,7 @@ export default {
 </script>
 
 <style lang="less" scoped="scoped">
+@textZindex: 2;
 .fx67ll-box {
 	width: 100%;
 	height: 100%;
@@ -65,6 +76,9 @@ export default {
 		width: 100%;
 		padding: 36px 0;
 		text-align: center;
+		color: @green;
+		position: relative;
+		z-index: @textZindex;
 		span {
 			display: inline-block;
 			font-size: 36px;
@@ -73,15 +87,21 @@ export default {
 		// 	color: @green;
 		// }
 	}
+	@linkMarginTop: 10px;
+	@linkMarginBotton: 20px;
+	@textColor: #fff;
 	.fx67ll-link {
-		max-height: calc(~'100% - 293px');
+		max-height: calc(~'100% - @{linkMarginTop} - @{linkMarginBotton}');
 		overflow: auto;
-		padding: 0 100px;
-		margin: 50px 0;
+		padding: 0 20px;
+		margin: @linkMarginTop 0 @linkMarginBotton 0;
+		position: relative;
+		z-index: @textZindex;
 		.fx67ll-link-item {
 			width: 100%;
 			margin-bottom: 25px;
 			text-align: center;
+			color: @textColor;
 			span {
 				display: inline-block;
 				font-size: 24px;
@@ -91,8 +111,19 @@ export default {
 			}
 			a {
 				text-decoration: none;
+				color: @textColor;
 			}
 		}
+	}
+
+	.fx67ll-background {
+		position: absolute;
+		top: 0;
+		z-index: @textZindex - 1;
+	}
+
+	.fx67ll-footer {
+		z-index: @textZindex;
 	}
 }
 </style>

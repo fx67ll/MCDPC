@@ -1,7 +1,7 @@
 <template>
 	<div id="app">
 		<router-view></router-view>
-		<vueCanvasNest :config="nestConfig" :el="'#app'" v-if="isLoadingCompleted"></vueCanvasNest>
+		<!-- <vueCanvasNest :config="nestConfig" :el="'#app'" v-if="isLoadingCompleted"></vueCanvasNest> -->
 		<div
 			v-show="this.$store.state.isShowbckbtn"
 			class="fx67ll-bckbtn"
@@ -22,40 +22,40 @@ export default {
 	},
 	data() {
 		return {
-			nestConfig: {
-				color: 'rgb(186, 186, 186)', // the canvas line color, default: '255,0,0'; the color is (R,G,B)
-				opacity: 0.7, // the opacity of line (0~1), default: 0.7
-				count: 33, // the number of lines, default: 99
-				zIndex: -1 // the index of z space, default: -1
-			},
-			isLoadingCompleted: false
+			// nestConfig: {
+			// 	color: 'rgb(186, 186, 186)', // the canvas line color, default: '255,0,0'; the color is (R,G,B)
+			// 	opacity: 0.7, // the opacity of line (0~1), default: 0.7
+			// 	count: 33, // the number of lines, default: 99
+			// 	zIndex: -1 // the index of z space, default: -1
+			// },
+			// isLoadingCompleted: false
 		};
 	},
 	mounted() {
-		var self = this;
-		var loadingTimer = setTimeout(function() {
-			self.isLoadingCompleted = true;
-			clearTimeout(loadingTimer);
-		}, 100);
-		// 在控制台输出一下canvas-nest展开的时间
-		// 不过好像异步处理一下的canvas-nest会自己全部展开了
-		this.showSeconds(1);
+		// var self = this;
+		// var loadingTimer = setTimeout(function() {
+		// 	self.isLoadingCompleted = true;
+		// 	clearTimeout(loadingTimer);
+		// }, 100);
+		// // 在控制台输出一下canvas-nest展开的时间
+		// // 不过好像异步处理一下的canvas-nest会自己全部展开了
+		// this.showSeconds(1);
 	},
 	methods: {
-		showSeconds(time) {
-			var self = this;
-			var consoleTimer = setTimeout(function() {
-				// console.log(`Waiting canvas-nest spread out......${time}s`);
-				// console.log(`canvas-nest is spread out!`);
-				console.log('code is magic!');
-				console.log('https://fx67ll.xyz');
-				if (!self.isLoadingCompleted) {
-					self.showSeconds(time + 1);
-				} else {
-					clearTimeout(consoleTimer);
-				}
-			}, 100);
-		},
+		// showSeconds(time) {
+		// 	var self = this;
+		// 	var consoleTimer = setTimeout(function() {
+		// 		// console.log(`Waiting canvas-nest spread out......${time}s`);
+		// 		// console.log(`canvas-nest is spread out!`);
+		// 		console.log('code is magic!');
+		// 		console.log('https://fx67ll.xyz');
+		// 		if (!self.isLoadingCompleted) {
+		// 			self.showSeconds(time + 1);
+		// 		} else {
+		// 			clearTimeout(consoleTimer);
+		// 		}
+		// 	}, 100);
+		// },
 		back() {
 			if (window.history.length <= 1) {
 				this.$router.push({ path: '/' });
