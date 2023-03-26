@@ -7,21 +7,19 @@
 			<!-- <div class="fx67ll-link-item"><router-link tag="span" to="/hellothree">Threejs Hello World</router-link></div>
 			<div class="fx67ll-link-item"><router-link tag="span" to="/testthree">Threejs Test For The Miku</router-link></div>
 			<div class="fx67ll-link-item"><router-link tag="span" to="/testthree-FBX">Threejs Test For The FBX-Loader</router-link></div> -->
-			<!-- <div class="fx67ll-link-item">
+			<div class="fx67ll-link-item">
 				<span><a target="_blank" href="https://www.yuque.com/docs/share/50146b98-8656-40b5-bbf9-c008bb31530f?# 《fx67llVueUI》">fx67llVueUI</a></span>
 				<span>&nbsp; | | &nbsp;</span>
 				<span><a target="_blank" href="https://www.yuque.com/docs/share/66ee9f75-5135-445f-a997-b476a5f342bf?# 《fx67llQuickEcharts》">fx67llQuickEcharts</a></span>
-			</div> -->
-			<div class="fx67ll-link-item">
+			</div>
+			<!-- <div class="fx67ll-link-item">
 				<span><a target="_blank" href="https://www.yuque.com/docs/share/50146b98-8656-40b5-bbf9-c008bb31530f?# 《fx67llVueUI》">fx67llVueUI</a></span>
 			</div>
 			<div class="fx67ll-link-item">
 				<span><a target="_blank" href="https://www.yuque.com/docs/share/66ee9f75-5135-445f-a997-b476a5f342bf?# 《fx67llQuickEcharts》">fx67llQuickEcharts</a></span>
-			</div>
+			</div> -->
 			<div class="fx67ll-link-item"><router-link tag="span" to="/test">Code Mirror</router-link></div>
 			<div class="fx67ll-link-item" v-show="isDev"><router-link tag="span" to="/devtest">Component Test Tool</router-link></div>
-
-			<div class="fx67ll-link-item">Please Waiting Still Dev......</div>
 		</div>
 		<iframe
 			class="fx67ll-background"
@@ -68,6 +66,7 @@ export default {
 
 <style lang="less" scoped="scoped">
 @textZindex: 2;
+@textColor: #ffff00;
 .fx67ll-box {
 	width: 100%;
 	height: 100%;
@@ -76,9 +75,9 @@ export default {
 		width: 100%;
 		padding: 36px 0;
 		text-align: center;
-		color: @green;
 		position: relative;
 		z-index: @textZindex;
+		color: @textColor;
 		span {
 			display: inline-block;
 			font-size: 36px;
@@ -89,9 +88,8 @@ export default {
 	}
 	@linkMarginTop: 10px;
 	@linkMarginBotton: 20px;
-	@textColor: #fff;
 	.fx67ll-link {
-		max-height: calc(~'100% - @{linkMarginTop} - @{linkMarginBotton}');
+		max-height: calc(~'100% - @{linkMarginTop} - @{linkMarginBotton} - 113px');
 		overflow: auto;
 		padding: 0 20px;
 		margin: @linkMarginTop 0 @linkMarginBotton 0;
