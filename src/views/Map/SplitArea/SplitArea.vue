@@ -10,7 +10,9 @@
 			<div @click="showCode">查看代码</div>
 			<div @click="showDoc">查看文档</div>
 		</div> -->
-		<div class="tool-box tool-box-inDev"><div class="tool-inDev">该组件开发中，尚不提供源码查看</div></div>
+		<div class="tool-box tool-box-inDev">
+			<!-- <div class="tool-inDev">该组件开发中，尚不提供源码查看</div> -->
+		</div>
 		<div id="map-container" ref="map"></div>
 	</div>
 </template>
