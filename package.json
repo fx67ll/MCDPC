@@ -1,6 +1,6 @@
 {
-  "name": "fx67ll's BigData Map Projects",
-  "version": "0.0.0",
+  "name": "MCDPC",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
