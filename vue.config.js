@@ -56,7 +56,7 @@ module.exports = {
 	// 配置连接后台的代理问题
 	devServer: {
 		// host: '0.0.0.0',
-		port: 1111,
+		port: 5555,
 		open: false,
 		// 可以这样设置默认打开chorme
 		// open: 'Google Chrome',
