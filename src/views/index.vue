@@ -71,7 +71,7 @@
 		.ban-user-select();
 
 		.fx67ll-title {
-			padding: 36px 20px 28px 20px;
+			padding: 36px 20px 24px 20px;
 			text-align: center;
 			position: relative;
 			z-index: @textZindex;
