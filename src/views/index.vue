@@ -25,9 +25,7 @@
 					Tool</router-link></div>
 			<div class="fx67ll-link-item"><span class="fx67ll-devTip">持续开发更新中......</span></div>
 		</div>
-		<iframe class="fx67ll-background"
-			src="https://test.fx67ll.com/fx67ll-background-collection/html/borealSky/borealSky.html" width="100%"
-			height="100%" frameborder="0" scrolling="no"></iframe>
+		<iframe class="fx67ll-background" src="https://test.fx67ll.com/fx67ll-background-collection/html/borealSky/borealSky.html" width="100%" height="100%" frameborder="0" scrolling="no"></iframe>
 		<div class="fx67ll-footer">
 			Designed & Powered by
 			<a href="https://fx67ll.com" target="_blank">fx67ll</a>
@@ -136,6 +134,12 @@
 
 		.fx67ll-footer {
 			z-index: @textZindex;
+		}
+
+		@media screen and (max-width: 960px) {
+			.fx67ll-footer {
+				font-size: 12px;
+			}
 		}
 	}
 </style>
