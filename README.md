@@ -2,7 +2,14 @@
 Map & Chart Data Projects Collection
 
 #### 访问地址
-欢迎参观 [map.fx67ll.com](http://map.fx67ll.com '大数据可视化地图示例演示网站')  
+欢迎参观 [map.fx67ll.com](http://map.fx67ll.com '大数据可视化地图相关示例合集站点')  
+
+## 0.2.0.20250922
+* 更新文案  
+* 新增AI生成的国庆自驾舟山路书  
+
+## 0.1.0.20xxxxxx
+* 初始化  
 
 ## 0.x.x.20xxxxxx
 * UI设计和网站图标都等待重新考虑  
