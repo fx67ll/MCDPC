@@ -1,27 +1,19 @@
 <template>
 	<div class="fx67ll-box">
-		<div class="fx67ll-title"><span @click="linktoFx67ll">fx67ll's 大数据可视化地图相关示例合集</span></div>
+		<div class="fx67ll-title"><span @click="linktoFx67ll">fx67ll's AI 大数据地图服务 Demo 合集</span></div>
 		<div class="fx67ll-link">
-			<div class="fx67ll-link-item"><router-link tag="span" to="/mapcanvas">CanvasMap Tool Based on
-					GaoDeMap</router-link></div>
-			<div class="fx67ll-link-item"><router-link tag="span" to="/splitarea">SpliteArea Tool Based on
-					GaoDeMap</router-link></div>
-			<!-- <div class="fx67ll-link-item"><router-link tag="span" to="/hellothree">Threejs Hello World</router-link></div>
-			<div class="fx67ll-link-item"><router-link tag="span" to="/testthree">Threejs Test For The Miku</router-link></div>
-			<div class="fx67ll-link-item"><router-link tag="span" to="/testthree-FBX">Threejs Test For The FBX-Loader</router-link></div>
+			<div class="fx67ll-link-item"><router-link tag="span" to="/mapcanvas">CanvasMap Tool Demo Powered By
+					古法手搓</router-link></div>
+			<div class="fx67ll-link-item"><router-link tag="span" to="/splitarea">SpliteArea Tool Demo Powered By
+					古法手搓</router-link></div>
 			<div class="fx67ll-link-item">
-				<span><a target="_blank" href="https://www.yuque.com/docs/share/50146b98-8656-40b5-bbf9-c008bb31530f?# 《fx67llVueUI》">fx67llVueUI</a></span>
-				<span>&nbsp; | | &nbsp;</span>
-				<span><a target="_blank" href="https://www.yuque.com/docs/share/66ee9f75-5135-445f-a997-b476a5f342bf?# 《fx67llQuickEcharts》">fx67llQuickEcharts</a></span>
+				<span><a target="_blank" href="https://ai.fx67ll.com/national-day-self-driving-plan">National Day Self
+						Driving Plan Powered By AI</a></span>
 			</div>
 			<div class="fx67ll-link-item">
-				<span><a target="_blank" href="https://www.yuque.com/docs/share/50146b98-8656-40b5-bbf9-c008bb31530f?# 《fx67llVueUI》">fx67llVueUI</a></span>
-			</div>
-			<div class="fx67ll-link-item">
-				<span><a target="_blank" href="https://www.yuque.com/docs/share/66ee9f75-5135-445f-a997-b476a5f342bf?# 《fx67llQuickEcharts》">fx67llQuickEcharts</a></span>
-			</div> -->
-			<div class="fx67ll-link-item">
-				<span><a target="_blank" href="https://ai.fx67ll.com/national-day-self-driving-plan">National Day Self Driving Plan Powered By AI</a></span>
+				<span><a target="_blank"
+						href="https://ai.fx67ll.com/map-lushu/2025-12/yuan-dan-hot-spring-ski-plan/">YuanDan Hot Spring
+						Ski Plan Powered By AI</a></span>
 			</div>
 			<div class="fx67ll-link-item"><router-link tag="span" to="/test">Code Mirror</router-link></div>
 			<div class="fx67ll-link-item" v-show="isDev"><router-link tag="span" to="/devtest">Component Test
@@ -115,6 +107,10 @@ export default {
 			}
 
 			span:hover {
+				color: @green;
+			}
+
+			a:hover {
 				color: @green;
 			}
 
