@@ -1,13 +1,15 @@
 <template>
 	<div id="app">
 		<router-view></router-view>
-		<!-- <vueCanvasNest :config="nestConfig" :el="'#app'" v-if="isLoadingCompleted"></vueCanvasNest> -->
+		<!-- 全站统一返回按钮：悬浮玻璃质感，hover 微动效 -->
 		<div
 			v-show="this.$store.state.isShowbckbtn"
-			class="fx67ll-bckbtn"
-			:class="[this.$store.state.btnType === 'default' ? '' : this.$store.state.btnType === 'doc' ? 'fx67ll-bckbtn-grey' : 'fx67ll-bckbtn-red']"
+			class="fx67ll-backbtn"
+			@click="back"
+			title="返回"
 		>
-			<span @click="back">返回</span>
+			<span class="fx67ll-backbtn-arrow">‹</span>
+			<span class="fx67ll-backbtn-text">返回</span>
 		</div>
 	</div>
 </template>
@@ -87,47 +89,56 @@ body {
 	width: 100%;
 	height: 100%;
 }
-.fx67ll-bckbtn {
+/* 全站统一返回按钮：悬浮玻璃质感按钮 */
+.fx67ll-backbtn {
 	position: absolute;
 	top: 20px;
-	right: 30px;
-	border: 1px solid @green;
-	box-shadow: 1px 1px 5px #f8f8f8;
-	z-index: 999;
-}
-.fx67ll-bckbtn span {
-	display: inline-block;
-	padding: 6px 6px 2px 6px;
+	right: 24px;
+	z-index: 9999;
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	height: 36px;
+	padding: 0 16px 0 8px;
+	border-radius: 18px;
+	background: rgba(255, 255, 255, 0.82);
+	backdrop-filter: blur(10px);
+	border: 1px solid rgba(66, 185, 131, 0.4);
+	box-shadow: 0 4px 14px rgba(66, 185, 131, 0.18);
+	cursor: pointer;
 	.ban-user-select();
-	color: @green;
-	font-size: 18px;
-	line-height: 22px;
-	border: 1px solid @green;
+	transition: all 0.25s ease;
+
+	.fx67ll-backbtn-arrow {
+		font-size: 22px;
+		color: @green;
+		line-height: 1;
+		font-weight: bold;
+		transition: transform 0.25s ease;
+	}
+
+	.fx67ll-backbtn-text {
+		font-size: 14px;
+		color: @green;
+		font-weight: bold;
+		line-height: 1;
+	}
 }
-.fx67ll-bckbtn span:hover {
-	background-color: @green;
-	color: #ffffff;
+.fx67ll-backbtn:hover {
+	background: @green;
+	border-color: @green;
+	box-shadow: 0 6px 20px rgba(66, 185, 131, 0.4);
+	transform: translateY(-1px);
+
+	.fx67ll-backbtn-arrow {
+		color: #ffffff;
+		transform: translateX(-3px);
+	}
+	.fx67ll-backbtn-text {
+		color: #ffffff;
+	}
 }
-// 文档中使用的灰色按钮
-.fx67ll-bckbtn-grey {
-	border: 1px solid @grey;
-}
-.fx67ll-bckbtn-grey span {
-	color: @grey;
-	border: 1px solid @grey;
-}
-.fx67ll-bckbtn-grey span:hover {
-	background-color: @grey;
-}
-// 开发中的组件使用的红色按钮
-.fx67ll-bckbtn-red {
-	border: 1px solid @red;
-}
-.fx67ll-bckbtn-red span {
-	color: @red;
-	border: 1px solid @red;
-}
-.fx67ll-bckbtn-red span:hover {
-	background-color: @red;
+.fx67ll-backbtn:active {
+	transform: translateY(0);
 }
 </style>
