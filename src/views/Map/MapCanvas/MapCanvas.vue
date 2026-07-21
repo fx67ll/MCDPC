@@ -1,10 +1,12 @@
 <!-- @name: MapCanvas -->
 <!-- @author: fx67ll -->
-<!-- @version: 1.0.1-->
-<!-- @description：基于高德地图的自定义绘制封装组件，请在项目中安装underscore，需要在引入高德地图api，格式：https://webapi.amap.com/maps?key=你的秘钥&v=1.4.15 -->
-<!-- @bug: 目前已知bug是缩小到世界地图返回用自定义工具绘制，然后放大会导致之前的绘制全部消失 -->
+<!-- @version: 2.0.0-->
+<!-- @description：基于高德地图 JS API 2.0 的自定义绘制封装组件，使用 AMap.CustomLayer 自定义图层渲染。
+                请在项目中安装underscore，地图通过 src/utils/amapLoader.js 按需懒加载，无需在 index.html 引入高德脚本。 -->
+<!-- @bug: 2.0 重构后已修复「缩小到世界地图返回再放大导致绘制消失」的问题（CustomLayer 每帧按当前地图状态重绘，不再绑定固定 bounds 快照） -->
 <!-- @update: 2020年9月25日-v1.0.0，完成1.0.0开发 -->
-<!-- @update: 2021年1月7日-v1.0.1，添加文档查看功能-->
+<!-- @update: 2021年1月7日-v1.0.1，添加文档查看功能 -->
+<!-- @update: 2026年-v2.0.0，升级 JS API 2.0，CanvasLayer→CustomLayer，全局方法→实例方法，修复缩放消失bug -->
 
 <template>
 	<div class="map">
@@ -26,6 +28,7 @@
 
 <script>
 import _ from 'underscore';
+import { loadAMap } from '@/utils/amapLoader.js';
 
 export default {
 	name: 'MapCanvas',
@@ -33,9 +36,12 @@ export default {
 		return {
 			isCheckArea: false, // 用于自定义画板锁定当前地图的判断变量
 			isDrawTestArea: false, // 只允许绘制一次演示图形
-			AMap: null, // 地图对象
+			isClosed: false, // 当前路径是否已闭合为区域
+			AMap: null, // 高德地图命名空间
+			map: null, // 地图实例对象
 			Canvas: null, // 画板对象
 			CanvasContext: null, // 画板实例对象
+			customLayer: null, // 2.0 自定义图层 AMap.CustomLayer
 			pathArr: [], // 经纬度坐标对象集合,
 			CanvasSize: [], // 画板对象坐标数组
 			// 测试用数据，非必要参数
@@ -317,91 +323,140 @@ export default {
 	mounted() {
 		this.mapInit();
 	},
+	beforeDestroy() {
+		if (this.map) {
+			this.map.destroy();
+			this.map = null;
+		}
+	},
 	methods: {
 		// 初始化地图
 		mapInit() {
 			var self = this;
-			self.AMap = new AMap.Map('map-container', {
-				center: self.mapcenter,
-				zoom: self.mapzoom,
-				showIndoorMap: false // 禁止显示室内地图，否则在画完自定义canvas之后继续放大会有无法加载室内的地图的错误导致图层消失
-			});
+			// 2.0 按需懒加载，MouseTool 用于高德官方绘制工具
+			loadAMap(['AMap.MouseTool']).then(function(AMap) {
+				self.AMap = AMap;
+				self.map = new AMap.Map('map-container', {
+					center: self.mapcenter,
+					zoom: self.mapzoom,
+					showIndoorMap: false // 禁止显示室内地图，避免画完自定义canvas后放大图层消失
+				});
 
-			if (self.mapstyle !== '' && self.mapstyle !== null && self.mapstyle !== undefined) {
-				self.AMap.setMapStyle(self.mapstyle);
-			}
-
-			self.AMap.on('click', function(e) {
-				// 确定绘制区域之后开始收集作画点集合
-				if (self.isCheckArea === true) {
-					self.initCanvasContext(self.AMap, self.strokeWidth, self.shadowStyle);
-					if (self.pathArr.length !== 0) {
-						var startIndex = self.pathArr.length - 1;
-					}
-					var posObj = {};
-					posObj.x = e.lnglat.getLng();
-					posObj.y = e.lnglat.getLat();
-					// posObj = e.pixel;
-					self.pathArr.push(posObj);
-					if (self.pathArr.length > 1) {
-						var endIndex = self.pathArr.length - 1;
-						self.drawLineByPostion(
-							self.AMap,
-							self.CanvasContext,
-							self.strokeColor,
-							self.pathArr[startIndex].x,
-							self.pathArr[startIndex].y,
-							self.pathArr[endIndex].x,
-							self.pathArr[endIndex].y
-						);
-						// self.drawLineByPixel(self.pathArr[startIndex],self.pathArr[endIndex]);
-					}
+				if (self.mapstyle !== '' && self.mapstyle !== null && self.mapstyle !== undefined) {
+					self.map.setMapStyle(self.mapstyle);
 				}
+
+				// 初始化自定义图层（2.0 用 CustomLayer 替代废弃的 CanvasLayer）
+				self.initCustomLayer();
+
+				self.map.on('click', function(e) {
+					// 确定绘制区域之后开始收集作画点集合
+					if (self.isCheckArea === true) {
+						if (self.pathArr.length !== 0) {
+							var startIndex = self.pathArr.length - 1;
+						}
+						var posObj = {};
+						posObj.x = e.lnglat.getLng();
+						posObj.y = e.lnglat.getLat();
+						self.pathArr.push(posObj);
+						// 每次新增点后触发图层重绘（CustomLayer 每帧按 pathArr 重绘，无需手动画线）
+						if (self.customLayer) {
+							self.customLayer.render();
+						}
+					}
+				});
+			}).catch(function(err) {
+				console.error('MapCanvas 加载失败:', err);
 			});
 		},
-		// 初始化canvas画板
-		initCanvasContext(map, linewidth, shadowstyle) {
+		// 初始化自定义图层（2.0 AMap.CustomLayer）
+		// 渲染回调在每次地图移动/缩放或调用 render() 时触发，按当前地图状态重绘所有已存路径，
+		// 从而解决旧版 CanvasLayer 绑定固定 bounds 导致缩放后绘制消失的问题。
+		initCustomLayer() {
+			var self = this;
 			var canvas = document.createElement('canvas');
 			canvas.classList.add('canvas-new');
-			canvas.width = map.getSize().width;
-			canvas.height = map.getSize().height;
-			this.CanvasSize = [canvas.width, canvas.height];
 			var context = canvas.getContext('2d');
-			this.CanvasContext = context;
+			self.Canvas = canvas;
+			self.CanvasContext = context;
 
-			context.lineWidth = linewidth;
-			context.lineCap = 'round';
-			context.lineJoin = 'round';
-			context.shadowColor = shadowstyle.shadowColor;
-			context.shadowBlur = shadowstyle.shadowBlur;
-			context.shadowOffsetX = shadowstyle.shadowOffsetX;
-			context.shadowOffsetY = shadowstyle.shadowOffsetY;
-
-			var CanvasLayer = new AMap.CanvasLayer({
-				canvas: canvas,
-				bounds: map.getBounds(),
+			self.customLayer = new self.AMap.CustomLayer(canvas, {
+				zIndex: 120,
 				zooms: [3, 18]
 			});
-			// CanvasLayer.setMap(null); // 传null相当于清除当前页面中画板
-			CanvasLayer.setMap(map);
+			// render 回调：每次重绘时同步 canvas 尺寸并按当前 pathArr 重绘
+			self.customLayer.render = function() {
+				self.renderCanvas();
+			};
+			self.map.add(self.customLayer);
 		},
-		// 根据坐标点集合绘制区域
+		// 实际渲染逻辑：清空画布，按当前地图投影重绘所有线段与闭合区域
+		renderCanvas() {
+			var self = this;
+			var map = self.map;
+			var context = self.CanvasContext;
+			var canvas = self.Canvas;
+			if (!map || !context || !canvas) return;
+			// 同步画布尺寸到地图容器，避免拉伸
+			var size = map.getSize();
+			var dpr = window.devicePixelRatio || 1;
+			if (canvas.width !== size.width * dpr || canvas.height !== size.height * dpr) {
+				canvas.width = size.width * dpr;
+				canvas.height = size.height * dpr;
+				canvas.style.width = size.width + 'px';
+				canvas.style.height = size.height + 'px';
+			}
+			self.CanvasSize = [canvas.width, canvas.height];
+			context.setTransform(dpr, 0, 0, dpr, 0, 0);
+			context.clearRect(0, 0, size.width, size.height);
+
+			// 应用线条样式
+			context.lineWidth = self.strokeWidth;
+			context.lineCap = 'round';
+			context.lineJoin = 'round';
+			context.shadowColor = self.shadowStyle.shadowColor;
+			context.shadowBlur = self.shadowStyle.shadowBlur;
+			context.shadowOffsetX = self.shadowStyle.shadowOffsetX;
+			context.shadowOffsetY = self.shadowStyle.shadowOffsetY;
+
+			// 无路径则不绘制
+			if (self.pathArr.length === 0) {
+				return;
+			}
+
+			// 若已闭合（isClosed）则绘制填充区域，否则只绘线段
+			if (self.isClosed === true) {
+				self.drawByPath(map, context, self.pathArr);
+			} else {
+				self.drawLines(map, context, self.pathArr);
+			}
+		},
+		// 绘制未闭合的折线（逐段渐变）
+		drawLines(map, context, path) {
+			var self = this;
+			for (var i = 0; i < path.length - 1; i++) {
+				self.drawLineByPostion(map, context, self.strokeColor, path[i].x, path[i].y, path[i + 1].x, path[i + 1].y);
+			}
+		},
+		// 根据坐标点集合绘制闭合区域
 		// 坐标集合的数据结构是[{x:0,y:0}]
 		drawByPath(map, context, path) {
 			var self = this;
 			context.beginPath();
-			var startpixel = map.lnglatTocontainer(new AMap.LngLat(path[0].x, path[0].y));
+			var startpixel = map.lngLatToContainer(new self.AMap.LngLat(path[0].x, path[0].y));
 			context.moveTo(startpixel.x, startpixel.y);
 			_.each(path, function(item, key) {
 				if (key !== 0) {
-					var pixel = map.lnglatTocontainer(new AMap.LngLat(item.x, item.y));
+					var pixel = map.lngLatToContainer(new self.AMap.LngLat(item.x, item.y));
 					context.lineTo(pixel.x, pixel.y);
-					self.handleStrokeGadient(context, self.strokeColor, startpixel, pixel);
-					context.stroke();
 				}
 			});
 			context.closePath();
+			// 先填充再描边，避免填充遮盖边框
 			self.handleFillGadient(context, self.fillStyle);
+			// 描边用整体渐变（首尾点）
+			var endpixel = map.lngLatToContainer(new self.AMap.LngLat(path[path.length - 1].x, path[path.length - 1].y));
+			self.handleStrokeGadient(context, self.strokeColor, startpixel, endpixel);
 			context.stroke();
 		},
 		drawTest() {
@@ -412,16 +467,15 @@ export default {
 		drawTestArea(testData) {
 			var self = this;
 			this.isDrawTestArea = true;
-			self.AMap.setZoomAndCenter(13, [118.779611, 32.016625]);
-			// 这里可以继续优化，暂且使用延时绘制的方式
+			// 演示图形直接作为闭合区域绘制
+			self.pathArr = testData.slice();
+			self.isClosed = true;
+			self.map.setZoomAndCenter(13, [118.779611, 32.016625]);
+			// 等待地图视角切换完成后触发重绘
 			setTimeout(function() {
-				self.initCanvasContext(self.AMap, self.strokeWidth, self.shadowStyle);
-				_.each(testData, function(item, key) {
-					if (key !== testData.length - 1) {
-						self.drawLineByPostion(self.AMap, self.CanvasContext, self.strokeColor, testData[key].x, testData[key].y, testData[key + 1].x, testData[key + 1].y);
-					}
-				});
-				self.drawByPath(self.AMap, self.CanvasContext, testData);
+				if (self.customLayer) {
+					self.customLayer.render();
+				}
 			}, 500);
 		},
 		// 处理线渐变
@@ -500,22 +554,22 @@ export default {
 		// 根据容器内的经纬度坐标绘制线
 		// 地图对象 画板实例对象 线的颜色数组 起点经度 起点纬度 终点经度 终点纬度
 		drawLineByPostion(map, context, strokecolor, startlng, startlat, endlng, endlat) {
-			context.fillStyle = '';
-			var pixel1 = map.lnglatTocontainer(new AMap.LngLat(startlng, startlat));
-			var pixel2 = map.lnglatTocontainer(new AMap.LngLat(endlng, endlat));
+			var pixel1 = map.lngLatToContainer(new this.AMap.LngLat(startlng, startlat));
+			var pixel2 = map.lngLatToContainer(new this.AMap.LngLat(endlng, endlat));
+			context.beginPath();
 			context.moveTo(pixel1.x, pixel1.y);
 			context.lineTo(pixel2.x, pixel2.y);
 			this.handleStrokeGadient(context, strokecolor, pixel1, pixel2);
 			context.stroke();
 		},
-		// 自定义工具有天然缺陷，canvas图层未解决如何随地图自动放大缩小
+		// 锁定/解锁当前地图用于绘制
 		checkArea() {
 			var self = this;
 			self.pathArr = [];
-			// self.strokeWidth = 10 * (self.AMap.getZoom() / 18);
+			self.isClosed = false;
 			self.isCheckArea = !self.isCheckArea;
 			if (self.isCheckArea === true) {
-				self.AMap.setStatus({
+				self.map.setStatus({
 					resizeEnable: false,
 					dragEnable: false,
 					keyboardEnable: false,
@@ -525,28 +579,32 @@ export default {
 				});
 			}
 			if (self.isCheckArea === false) {
-				self.AMap.setStatus({
+				self.map.setStatus({
 					dragEnable: true,
 					zoomEnable: true
 				});
 			}
 		},
-		// 绘制区域
+		// 将已绘制的线段绘制成闭合区域
 		drawArea() {
 			var self = this;
-			self.drawByPath(self.AMap, self.CanvasContext, self.pathArr);
+			if (self.pathArr.length < 3) return;
+			self.isClosed = true;
+			if (self.customLayer) {
+				self.customLayer.render();
+			}
 		},
-		// 绘制
+		// 高德官方工具绘制线段
 		draw(val) {
 			var self = this;
-			var mouseTool = new AMap.MouseTool(self.AMap);
+			var mouseTool = new self.AMap.MouseTool(self.map);
 			mouseTool.polyline({
 				strokeColor: '#ff0000',
 				strokeOpacity: 1,
 				strokeWeight: 10,
 				strokeStyle: 'solid'
 			});
-			mouseTool.on('draw', event => {
+			mouseTool.on('draw', function(event) {
 				var path = event.obj.getPath();
 				// console.log(path);
 			});
@@ -554,8 +612,17 @@ export default {
 		// 退出当前绘制区域
 		cancel() {
 			this.isDrawTestArea = false;
-			this.mapInit();
+			this.isClosed = false;
 			this.pathArr = [];
+			if (this.customLayer) {
+				this.customLayer.render();
+			}
+			if (this.map) {
+				this.map.setStatus({
+					dragEnable: true,
+					zoomEnable: true
+				});
+			}
 		},
 		// 显示当前组件源码，提取源码请自行删除该部分相关代码
 		showCode() {
