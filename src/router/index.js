@@ -46,8 +46,23 @@ export const fx67llRoutes = [{
 	{
 		path: '/splitarea',
 		name: 'splitarea',
-		component: () => import('@v/Map/SplitArea/SplitArea.vue') // 在高德地图上绘制canvas覆盖物
+		component: () => import('@v/Map/SplitArea/SplitArea.vue') // 行政区划逐级下钻 全国→省→市→区县
 	},
+		{
+			path: '/heatmap',
+			name: 'heatmap',
+			component: () => import('@v/Map/HeatMapPoint/HeatMapPoint.vue') // 24小时动态热力图
+		},
+		{
+			path: '/flyline3d',
+			name: 'flyline3d',
+			component: () => import('@v/Map/FlyLine3D/FlyLine3D.vue') // 3D飞线迁徙Demo
+		},
+		{
+			path: '/glowwall3d',
+			name: 'glowwall3d',
+			component: () => import('@v/Map/GlowWall3D/GlowWall3D.vue') // 3D立体发光围墙与雷达扫描Demo
+		},
 	{
 		path: '/testnode',
 		name: 'testnode',
@@ -74,16 +89,9 @@ const router = new Router({
 
 // 全局路由守卫
 router.beforeEach((to, from, next) => {
-	// 不是首页的话将自动显示返回按钮
+	// 不是首页的话将自动显示统一返回按钮
 	if (to.name !== 'index') {
 		store.dispatch("setBtnStateAsync", true);
-		if(to.name === 'doc') {
-			store.dispatch("setBtnTypeAsync", 'doc');
-		}else if(to.name === 'splitarea'){
-			store.dispatch("setBtnTypeAsync", 'dev');
-		}else{
-			store.dispatch("setBtnTypeAsync", 'default');
-		}
 	} else {
 		store.dispatch("setBtnStateAsync", false);
 	}
