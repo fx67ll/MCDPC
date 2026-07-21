@@ -4,6 +4,11 @@ Map & Chart Data Projects Collection
 #### 访问地址
 欢迎参观 [map.fx67ll.com](http://map.fx67ll.com "fx67ll's AI 大数据地图服务 Demo 合集站点")  
 
+## 0.2.2.20260721  
+* 整体加载逻辑架构优化  
+* 新增更多的地图Demo示例  
+* 优化行政区划功能Demo示例  
+
 ## 0.2.1.20260720
 * 更新文案  
 * 新增AI生成的元旦温泉滑雪计划路书  
