@@ -2,10 +2,11 @@
 	<div class="fx67ll-box">
 		<div class="fx67ll-title"><span @click="linktoFx67ll">fx67ll's AI 大数据地图服务 Demo 合集</span></div>
 		<div class="fx67ll-link">
-			<div class="fx67ll-link-item"><router-link tag="span" to="/mapcanvas">CanvasMap Tool Demo Powered By
-					古法手搓</router-link></div>
-			<div class="fx67ll-link-item"><router-link tag="span" to="/splitarea">SpliteArea Tool Demo Powered By
-					古法手搓</router-link></div>
+			<div class="fx67ll-link-item"><router-link tag="span" to="/mapcanvas">CanvasMap Demo · Canvas绘图</router-link></div>
+			<div class="fx67ll-link-item"><router-link tag="span" to="/splitarea">SpliteArea Demo · 行政区域划分</router-link></div>
+			<div class="fx67ll-link-item"><router-link tag="span" to="/heatmap">HeatMapPoint Demo · 24小时动态热力图</router-link></div>
+			<div class="fx67ll-link-item"><router-link tag="span" to="/flyline3d">FlyLine2D Demo · 2D 关联飞线可视化</router-link></div>
+			<div class="fx67ll-link-item"><router-link tag="span" to="/glowwall3d">GlowWall3D Demo · 3D 立体光墙雷达扫描</router-link></div>
 			<div class="fx67ll-link-item">
 				<span><a target="_blank" href="https://ai.fx67ll.com/national-day-self-driving-plan">National Day Self
 						Driving Plan Powered By AI</a></span>
