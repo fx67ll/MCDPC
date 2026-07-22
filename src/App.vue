@@ -2,12 +2,7 @@
 	<div id="app">
 		<router-view></router-view>
 		<!-- 全站统一返回按钮：悬浮玻璃质感，hover 微动效 -->
-		<div
-			v-show="this.$store.state.isShowbckbtn"
-			class="fx67ll-backbtn"
-			@click="back"
-			title="返回"
-		>
+		<div v-show="this.$store.state.isShowbckbtn" class="fx67ll-backbtn" @click="back" title="返回">
 			<span class="fx67ll-backbtn-arrow">‹</span>
 			<span class="fx67ll-backbtn-text">返回</span>
 		</div>
@@ -85,10 +80,12 @@ body {
 	font-family: 'PFR';
 	color: @grey;
 }
+
 #app {
 	width: 100%;
 	height: 100%;
 }
+
 /* 全站统一返回按钮：悬浮玻璃质感按钮 */
 .fx67ll-backbtn {
 	position: absolute;
@@ -98,8 +95,8 @@ body {
 	display: inline-flex;
 	align-items: center;
 	gap: 2px;
-	height: 36px;
-	padding: 0 16px 0 8px;
+	height: 32px;
+	padding: 2px 16px 0 14px;
 	border-radius: 18px;
 	background: rgba(255, 255, 255, 0.82);
 	backdrop-filter: blur(10px);
@@ -115,6 +112,8 @@ body {
 		line-height: 1;
 		font-weight: bold;
 		transition: transform 0.25s ease;
+		position: relative;
+		top: -1px;
 	}
 
 	.fx67ll-backbtn-text {
@@ -124,6 +123,7 @@ body {
 		line-height: 1;
 	}
 }
+
 .fx67ll-backbtn:hover {
 	background: @green;
 	border-color: @green;
@@ -134,10 +134,12 @@ body {
 		color: #ffffff;
 		transform: translateX(-3px);
 	}
+
 	.fx67ll-backbtn-text {
 		color: #ffffff;
 	}
 }
+
 .fx67ll-backbtn:active {
 	transform: translateY(0);
 }
