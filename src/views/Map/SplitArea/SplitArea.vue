@@ -13,13 +13,8 @@
 				<span class="crumb-level" v-if="currentLevelName">{{ levelText }}</span>
 			</div>
 			<div class="crumb-list">
-				<span
-					class="crumb-item"
-					:class="{ 'is-last': index === crumbList.length - 1 }"
-					v-for="(item, index) in crumbList"
-					:key="index"
-					@click="drillUp(index)"
-				>
+				<span class="crumb-item" :class="{ 'is-last': index === crumbList.length - 1 }"
+					v-for="(item, index) in crumbList" :key="index" @click="drillUp(index)">
 					<span class="crumb-name">{{ item.name }}</span>
 					<span class="crumb-sep" v-if="index < crumbList.length - 1">/</span>
 				</span>
@@ -30,16 +25,8 @@
 		<div class="mode-box">
 			<span class="mode-label">显示模式</span>
 			<div class="mode-switch">
-				<span
-					class="mode-option"
-					:class="{ active: mode === 'lite' }"
-					@click="switchMode('lite')"
-				>个人私用</span>
-				<span
-					class="mode-option"
-					:class="{ active: mode === 'full' }"
-					@click="switchMode('full')"
-				>全国通用</span>
+				<span class="mode-option" :class="{ active: mode === 'lite' }" @click="switchMode('lite')">个人私用</span>
+				<span class="mode-option" :class="{ active: mode === 'full' }" @click="switchMode('full')">全国通用</span>
 			</div>
 		</div>
 
@@ -154,7 +141,7 @@ export default {
 			self.isLoading = true;
 			self.loadingText = '正在加载地图...';
 			// 按需加载 DistrictSearch 插件
-			loadAMap(['AMap.DistrictSearch']).then(function(AMap) {
+			loadAMap(['AMap.DistrictSearch']).then(function (AMap) {
 				self.AMap = AMap;
 				self.map = new AMap.Map('splitarea-container', {
 					center: NANJING_CENTER,
@@ -163,21 +150,21 @@ export default {
 				});
 				self.map.setLimitBounds(new AMap.Bounds([72, 0], [138, 56]));
 
-				self.map.on('mousemove', function() {
+				self.map.on('mousemove', function () {
 					if (self.hoverInfo.name) {
 						self.hoverInfo = {};
 					}
 				});
 
 				// 地图拖动结束后，若仍在「全国概览」层级且视口中心不在江浙沪，则懒加载该省份
-				self.map.on('moveend', function() {
+				self.map.on('moveend', function () {
 					self.lazyLoadProvinceByViewport();
 				});
 
 				self.isLoading = false;
 				// 按当前模式加载初始区域
 				self.loadInitial();
-			}).catch(function(err) {
+			}).catch(function (err) {
 				self.isLoading = false;
 				self.errorMsg = '地图加载失败：' + (err && err.message ? err.message : '请检查网络');
 			});
@@ -223,7 +210,7 @@ export default {
 				extensions: 'all',
 				subdistrict: 1
 			});
-			countrySearch.search('中华人民共和国', function(status, result) {
+			countrySearch.search('中华人民共和国', function (status, result) {
 				if (myToken !== self.loadToken || !self.map) return;
 				if (status !== 'complete' || !result || !result.districtList || !result.districtList[0]) {
 					self.isLoading = false;
@@ -239,7 +226,7 @@ export default {
 						extensions: 'all',
 						subdistrict: 0
 					});
-					fetcher.search(prov.adcode, function(s, r) {
+					fetcher.search(prov.adcode, function (s, r) {
 						if (myToken !== self.loadToken || !self.map) { done(); return; }
 						if (s === 'complete' && r && r.districtList && r.districtList.length > 0) {
 							var info = r.districtList[0];
@@ -255,7 +242,7 @@ export default {
 						done();
 					});
 				}
-				self.runGrouped(provinces, fetchOne, myToken, function() {
+				self.runGrouped(provinces, fetchOne, myToken, function () {
 					if (myToken === self.loadToken) self.isLoading = false;
 				});
 			});
@@ -282,7 +269,7 @@ export default {
 					extensions: 'all',
 					subdistrict: 0
 				});
-				fetcher.search(prov.adcode, function(status, result) {
+				fetcher.search(prov.adcode, function (status, result) {
 					if (myToken !== self.loadToken || !self.map) { done(); return; }
 					if (status === 'complete' && result && result.districtList && result.districtList.length > 0) {
 						var info = result.districtList[0];
@@ -299,7 +286,7 @@ export default {
 				});
 			}
 			// 分组节流：每组 GROUP_SIZE 个并发，组间间隔 GROUP_INTERVAL 毫秒
-			self.runGrouped(PRIORITY_PROVINCES, fetchOne, myToken, function() {
+			self.runGrouped(PRIORITY_PROVINCES, fetchOne, myToken, function () {
 				if (myToken === self.loadToken) self.isLoading = false;
 			});
 		},
@@ -319,8 +306,8 @@ export default {
 				var group = items.slice(index, index + GROUP_SIZE);
 				index += group.length;
 				var remaining = group.length;
-				group.forEach(function(item) {
-					taskFn(item, function() {
+				group.forEach(function (item) {
+					taskFn(item, function () {
 						remaining--;
 						if (remaining === 0) {
 							// 本组全部完成，间隔后执行下一组
@@ -390,7 +377,7 @@ export default {
 				extensions: 'all',
 				subdistrict: 0
 			});
-			fetcher.search(prov.adcode, function(status, result) {
+			fetcher.search(prov.adcode, function (status, result) {
 				// 已切换层级或重绘，丢弃过期回调
 				if (myToken !== self.loadToken || !self.isOverviewLevel) {
 					return;
@@ -421,11 +408,11 @@ export default {
 			var keyword = adcode === '100000' ? '中华人民共和国' : adcode;
 			// 2.0 下 level 只能在构造时设置（setLevel 已移除），每次按 level 新建实例
 			var district = self.createDistrictSearch(level);
-			district.search(keyword, function(status, result) {
+			district.search(keyword, function (status, result) {
 				if (status !== 'complete' || !result || !result.districtList || result.districtList.length === 0) {
 					// 兜底：关键字失败再用 adcode 重试一次（全国场景）
 					if (keyword !== adcode) {
-						district.search(adcode, function(s2, r2) {
+						district.search(adcode, function (s2, r2) {
 							self.handleSearchResult(s2, r2, level, myToken);
 						});
 						return;
@@ -512,7 +499,7 @@ export default {
 				});
 				var subToken = self.loadToken;
 				function fetchSub(sub, done) {
-					fetcher.search(sub.adcode, function(s2, r2) {
+					fetcher.search(sub.adcode, function (s2, r2) {
 						if (subToken !== self.loadToken || !self.map) { done(); return; }
 						if (s2 === 'complete' && r2 && r2.districtList && r2.districtList.length > 0) {
 							var subBounds = r2.districtList[0].boundaries;
@@ -524,7 +511,7 @@ export default {
 						done();
 					});
 				}
-				self.runGrouped(needFetch, fetchSub, subToken, function() {
+				self.runGrouped(needFetch, fetchSub, subToken, function () {
 					if (subToken === self.loadToken) self.finishDraw();
 				});
 			}
@@ -565,7 +552,7 @@ export default {
 			polygon._areaInfo = areaInfo;
 			polygon._canDrill = canDrill;
 
-			polygon.on('mouseover', function() {
+			polygon.on('mouseover', function () {
 				polygon.setOptions({
 					fillOpacity: 0.55,
 					strokeWeight: 2,
@@ -579,7 +566,7 @@ export default {
 				};
 			});
 
-			polygon.on('mouseout', function() {
+			polygon.on('mouseout', function () {
 				polygon.setOptions({
 					fillOpacity: 0.25,
 					strokeWeight: 1,
@@ -587,7 +574,7 @@ export default {
 				});
 			});
 
-			polygon.on('click', function() {
+			polygon.on('click', function () {
 				if (!canDrill) {
 					self.pulsePolygon(polygon);
 					return;
@@ -667,7 +654,7 @@ export default {
 			polygon._pulsing = true;
 			var count = 0;
 			var max = 6;
-			var timer = setInterval(function() {
+			var timer = setInterval(function () {
 				if (count >= max) {
 					clearInterval(timer);
 					polygon.setOptions({
@@ -762,9 +749,11 @@ export default {
 			transition: all 0.25s ease;
 			white-space: nowrap;
 		}
+
 		.mode-option:hover {
 			color: @green;
 		}
+
 		.mode-option.active {
 			background: @green;
 			color: #ffffff;
@@ -843,6 +832,7 @@ export default {
 					background: @green;
 					font-weight: bold;
 				}
+
 				.crumb-name:hover {
 					color: #ffffff;
 					background: @green;
@@ -876,9 +866,11 @@ export default {
 		margin: 0 3px;
 		animation: bounce-dot 1s infinite ease-in-out;
 	}
+
 	.loading-dot:nth-child(2) {
 		animation-delay: 0.15s;
 	}
+
 	.loading-dot:nth-child(3) {
 		animation-delay: 0.3s;
 	}
@@ -891,12 +883,14 @@ export default {
 }
 
 @keyframes bounce-dot {
+
 	0%,
 	80%,
 	100% {
 		transform: scale(0.6);
 		opacity: 0.6;
 	}
+
 	40% {
 		transform: scale(1.1);
 		opacity: 1;
@@ -929,6 +923,7 @@ export default {
 		cursor: pointer;
 		transition: all 0.2s ease;
 	}
+
 	.error-retry:hover {
 		background: @red;
 		color: #ffffff;
@@ -968,6 +963,7 @@ export default {
 		.info-key {
 			color: @grey;
 		}
+
 		.info-val {
 			color: #2c3e50;
 		}
@@ -981,6 +977,7 @@ export default {
 		color: @green;
 		text-align: center;
 	}
+
 	.info-tip-end {
 		color: @red;
 	}
@@ -991,6 +988,7 @@ export default {
 		opacity: 0;
 		transform: translateY(10px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateY(0);

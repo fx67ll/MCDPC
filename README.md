@@ -4,6 +4,9 @@ Map & Chart Data Projects Collection
 #### 访问地址
 欢迎参观 [map.fx67ll.com](http://map.fx67ll.com "fx67ll's AI 大数据地图服务 Demo 合集站点")  
 
+## 0.2.3.20260722  
+* 优化界面样式，修复已知问题  
+
 ## 0.2.2.20260721  
 * 整体加载逻辑架构优化  
 * 新增更多的地图Demo示例  

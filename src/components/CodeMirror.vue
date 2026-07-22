@@ -1,5 +1,7 @@
 <template>
-	<div class="code-box"><codemirror ref="mycode" :value="curCode" :options="cmOptions" class="code-codemirror"></codemirror></div>
+	<div class="code-box">
+		<codemirror ref="mycode" :value="curCode" :options="cmOptions" class="code-codemirror"></codemirror>
+	</div>
 </template>
 
 <script>

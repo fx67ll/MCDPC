@@ -1,7 +1,8 @@
 <template>
 	<div class="component-box">
 		<!-- <MapCanvas :mapzoom="15" :strokeWidth="20" :strokeColor="mapcanvas.strokeColor" :shadowStyle="mapcanvas.shadowStyle" :fillStyle="mapcanvas.fillStyle"></MapCanvas> -->
-		<SplitArea :searchLevel="splitarea.searchLevel" :subsNum="splitarea.subsNum" :strokeStyle="splitarea.strokeStyle" :fillStyle="splitarea.fillStyle"></SplitArea>
+		<SplitArea :searchLevel="splitarea.searchLevel" :subsNum="splitarea.subsNum"
+			:strokeStyle="splitarea.strokeStyle" :fillStyle="splitarea.fillStyle"></SplitArea>
 	</div>
 </template>
 
@@ -35,7 +36,7 @@ export default {
 					style: {
 						fillColor: '#80d8ff',
 						fillOpacity: 0.29,
-						hoverOpcity: 0.69 
+						hoverOpcity: 0.69
 					}
 				}
 			},

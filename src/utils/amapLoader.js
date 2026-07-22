@@ -22,11 +22,11 @@ let loadedPlugins = {};
 
 // 安全密钥配置（必须在 AMapLoader.load 之前设置）
 function setupSecurity() {
-	if (AMAP_SECURITY_CODE) {
-		window._AMapSecurityConfig = {
-			securityJsCode: AMAP_SECURITY_CODE
-		};
-	}
+  if (AMAP_SECURITY_CODE) {
+    window._AMapSecurityConfig = {
+      securityJsCode: AMAP_SECURITY_CODE,
+    };
+  }
 }
 
 /**
@@ -39,42 +39,42 @@ function setupSecurity() {
  * @returns {Promise<AMap>}
  */
 function ensurePlugins(AMap, plugins) {
-	if (!plugins || plugins.length === 0) {
-		return Promise.resolve(AMap);
-	}
-	var need = plugins.filter(function(p) {
-		return !loadedPlugins[p];
-	});
-	if (need.length === 0) {
-		return Promise.resolve(AMap);
-	}
-	return new Promise(function(resolve) {
-		var done = false;
-		// 超时兜底：无效插件名不会触发回调，3 秒后强制放行，避免卡死
-		var timer = setTimeout(function() {
-			if (!done) {
-				done = true;
-				resolve(AMap);
-			}
-		}, 3000);
-		try {
-			AMap.plugin(need, function() {
-				if (done) return;
-				done = true;
-				clearTimeout(timer);
-				need.forEach(function(p) {
-					loadedPlugins[p] = true;
-				});
-				resolve(AMap);
-			});
-		} catch (e) {
-			if (!done) {
-				done = true;
-				clearTimeout(timer);
-				resolve(AMap);
-			}
-		}
-	});
+  if (!plugins || plugins.length === 0) {
+    return Promise.resolve(AMap);
+  }
+  var need = plugins.filter(function (p) {
+    return !loadedPlugins[p];
+  });
+  if (need.length === 0) {
+    return Promise.resolve(AMap);
+  }
+  return new Promise(function (resolve) {
+    var done = false;
+    // 超时兜底：无效插件名不会触发回调，3 秒后强制放行，避免卡死
+    var timer = setTimeout(function () {
+      if (!done) {
+        done = true;
+        resolve(AMap);
+      }
+    }, 3000);
+    try {
+      AMap.plugin(need, function () {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        need.forEach(function (p) {
+          loadedPlugins[p] = true;
+        });
+        resolve(AMap);
+      });
+    } catch (e) {
+      if (!done) {
+        done = true;
+        clearTimeout(timer);
+        resolve(AMap);
+      }
+    }
+  });
 }
 
 /**
@@ -84,26 +84,28 @@ function ensurePlugins(AMap, plugins) {
  * @returns {Promise<AMap>} 返回 AMap 命名空间
  */
 export function loadAMap(plugins) {
-	var want = plugins || [];
-	if (!AMapPromise) {
-		setupSecurity();
-		AMapPromise = AMapLoader.load({
-			key: AMAP_KEY,
-			version: AMAP_VERSION,
-			plugins: want
-		}).then(function(AMap) {
-			want.forEach(function(p) {
-				loadedPlugins[p] = true;
-			});
-			return AMap;
-		}).catch(function(err) {
-			AMapPromise = null;
-			throw err;
-		});
-	}
-	return AMapPromise.then(function(AMap) {
-		return ensurePlugins(AMap, want);
-	});
+  var want = plugins || [];
+  if (!AMapPromise) {
+    setupSecurity();
+    AMapPromise = AMapLoader.load({
+      key: AMAP_KEY,
+      version: AMAP_VERSION,
+      plugins: want,
+    })
+      .then(function (AMap) {
+        want.forEach(function (p) {
+          loadedPlugins[p] = true;
+        });
+        return AMap;
+      })
+      .catch(function (err) {
+        AMapPromise = null;
+        throw err;
+      });
+  }
+  return AMapPromise.then(function (AMap) {
+    return ensurePlugins(AMap, want);
+  });
 }
 
 /**
@@ -113,28 +115,28 @@ export function loadAMap(plugins) {
  * @returns {Promise<Loca>} 返回 Loca 命名空间
  */
 export function loadLoca(AMap) {
-	if (window.Loca) {
-		return Promise.resolve(window.Loca);
-	}
-	return new Promise(function(resolve, reject) {
-		var script = document.createElement('script');
-		// Loca v2 官方脚本地址，需与 JS API 2.0 配合
-		script.src = 'https://webapi.amap.com/loca?v=2.0&key=' + AMAP_KEY;
-		script.onload = function() {
-			if (window.Loca) {
-				resolve(window.Loca);
-			} else {
-				reject(new Error('Loca 加载失败：脚本已执行但未挂载到 window.Loca'));
-			}
-		};
-		script.onerror = function() {
-			reject(new Error('Loca 脚本加载失败，请检查网络'));
-		};
-		document.head.appendChild(script);
-	});
+  if (window.Loca) {
+    return Promise.resolve(window.Loca);
+  }
+  return new Promise(function (resolve, reject) {
+    var script = document.createElement('script');
+    // Loca v2 官方脚本地址，需与 JS API 2.0 配合
+    script.src = 'https://webapi.amap.com/loca?v=2.0&key=' + AMAP_KEY;
+    script.onload = function () {
+      if (window.Loca) {
+        resolve(window.Loca);
+      } else {
+        reject(new Error('Loca 加载失败：脚本已执行但未挂载到 window.Loca'));
+      }
+    };
+    script.onerror = function () {
+      reject(new Error('Loca 脚本加载失败，请检查网络'));
+    };
+    document.head.appendChild(script);
+  });
 }
 
 export default {
-	loadAMap: loadAMap,
-	loadLoca: loadLoca
+  loadAMap: loadAMap,
+  loadLoca: loadLoca,
 };

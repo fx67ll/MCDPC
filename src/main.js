@@ -1,23 +1,23 @@
-import Vue from 'vue'
-import App from '@/App.vue'
-import router from '@/router/index.js'
-import store from '@/store/index.js'
+import Vue from 'vue';
+import App from '@/App.vue';
+import router from '@/router/index.js';
+import store from '@/store/index.js';
 
-Vue.config.productionTip = false
+Vue.config.productionTip = false;
 
-import less from 'less'
-Vue.use(less)
+import less from 'less';
+Vue.use(less);
 
-import VueCodeMirror from 'vue-codemirror'
-import 'codemirror/lib/codemirror.css'
-Vue.use(VueCodeMirror)
+import VueCodeMirror from 'vue-codemirror';
+import 'codemirror/lib/codemirror.css';
+Vue.use(VueCodeMirror);
 
 import ElementUI from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
 Vue.use(ElementUI);
 
 new Vue({
-	router,
-	store,
-	render: h => h(App),
-}).$mount('#app')
+  router,
+  store,
+  render: h => h(App),
+}).$mount('#app');

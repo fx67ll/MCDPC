@@ -58,6 +58,7 @@ export default {
 	width: 1280px;
 	height: 100%;
 	margin: 0 auto;
+
 	.doc-title {
 		width: 100%;
 		height: 80px;
@@ -66,6 +67,7 @@ export default {
 		font-size: 28px;
 		.ban-user-select();
 	}
+
 	.doc-table {
 		width: 100%;
 		margin-bottom: 50px;

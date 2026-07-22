@@ -26,15 +26,8 @@
 				<span class="time-min">00</span>
 			</div>
 			<div class="time-slider-wrap">
-				<input
-					class="time-slider"
-					type="range"
-					min="0"
-					max="23"
-					step="1"
-					v-model.number="currentHour"
-					@input="onHourChange"
-				/>
+				<input class="time-slider" type="range" min="0" max="23" step="1" v-model.number="currentHour"
+					@input="onHourChange" />
 				<div class="time-ticks">
 					<span v-for="h in [0, 6, 12, 18, 23]" :key="h">{{ h }}时</span>
 				</div>
@@ -51,15 +44,8 @@
 		<!-- 强度调节 -->
 		<div class="opacity-box">
 			<span class="opacity-label">热力强度</span>
-			<input
-				class="opacity-slider"
-				type="range"
-				min="20"
-				max="100"
-				step="5"
-				v-model.number="intensity"
-				@input="onIntensityChange"
-			/>
+			<input class="opacity-slider" type="range" min="20" max="100" step="5" v-model.number="intensity"
+				@input="onIntensityChange" />
 			<span class="opacity-val">{{ intensity }}%</span>
 		</div>
 
@@ -107,7 +93,7 @@ export default {
 	methods: {
 		mapInit() {
 			var self = this;
-			loadAMap(['AMap.HeatMap']).then(function(AMap) {
+			loadAMap(['AMap.HeatMap']).then(function (AMap) {
 				self.AMap = AMap;
 				self.map = new AMap.Map('heatmap-container', {
 					center: NANJING_CENTER,
@@ -128,16 +114,16 @@ export default {
 				});
 
 				// 地图底图加载完成后渲染热力，避免图层未就绪导致不显示
-				self.map.on('complete', function() {
+				self.map.on('complete', function () {
 					self.updateHeat();
 				});
 				// 兜底：complete 未触发时也尝试渲染
-				setTimeout(function() {
+				setTimeout(function () {
 					if (self.heatMap) {
 						self.updateHeat();
 					}
 				}, 800);
-			}).catch(function(err) {
+			}).catch(function (err) {
 				console.error('HeatMap 加载失败:', err);
 			});
 		},
@@ -181,7 +167,7 @@ export default {
 		startPlay() {
 			var self = this;
 			self.isPlaying = true;
-			self.playTimer = setInterval(function() {
+			self.playTimer = setInterval(function () {
 				self.currentHour = (self.currentHour + 1) % 24;
 				self.updateHeat();
 			}, 1000);
@@ -236,6 +222,7 @@ export default {
 		color: #ffffff;
 		letter-spacing: 0.5px;
 	}
+
 	.title-sub {
 		display: block;
 		margin-top: 4px;
@@ -262,6 +249,7 @@ export default {
 		font-size: 12px;
 		color: @grey;
 	}
+
 	.legend-bar {
 		width: 140px;
 		height: 10px;
@@ -315,6 +303,7 @@ export default {
 			outline: none;
 			cursor: pointer;
 		}
+
 		.time-slider::-webkit-slider-thumb {
 			-webkit-appearance: none;
 			appearance: none;
@@ -326,6 +315,7 @@ export default {
 			box-shadow: 0 0 8px rgba(66, 185, 131, 0.8);
 			cursor: pointer;
 		}
+
 		.time-slider::-moz-range-thumb {
 			width: 18px;
 			height: 18px;
@@ -339,6 +329,7 @@ export default {
 			display: flex;
 			justify-content: space-between;
 			margin-top: 6px;
+
 			span {
 				font-size: 11px;
 				color: @grey;
@@ -360,9 +351,11 @@ export default {
 			transition: all 0.2s ease;
 			white-space: nowrap;
 		}
+
 		.ctrl-btn:hover {
 			background: rgba(66, 185, 131, 0.18);
 		}
+
 		.ctrl-btn.active {
 			background: @green;
 			color: #0d1117;
@@ -371,10 +364,12 @@ export default {
 }
 
 @keyframes blink {
+
 	0%,
 	100% {
 		opacity: 1;
 	}
+
 	50% {
 		opacity: 0.3;
 	}
@@ -400,6 +395,7 @@ export default {
 		font-size: 12px;
 		color: @grey;
 	}
+
 	.opacity-slider {
 		width: 110px;
 		height: 5px;
@@ -410,6 +406,7 @@ export default {
 		outline: none;
 		cursor: pointer;
 	}
+
 	.opacity-slider::-webkit-slider-thumb {
 		-webkit-appearance: none;
 		width: 14px;
@@ -419,6 +416,7 @@ export default {
 		border: 2px solid #ffffff;
 		cursor: pointer;
 	}
+
 	.opacity-slider::-moz-range-thumb {
 		width: 14px;
 		height: 14px;
@@ -427,6 +425,7 @@ export default {
 		border: 2px solid #ffffff;
 		cursor: pointer;
 	}
+
 	.opacity-val {
 		font-size: 12px;
 		color: #ffffff;
@@ -438,6 +437,7 @@ export default {
 	.opacity-box {
 		display: none;
 	}
+
 	.time-box {
 		width: 90%;
 	}

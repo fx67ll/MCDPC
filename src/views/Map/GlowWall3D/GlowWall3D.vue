@@ -17,13 +17,8 @@
 		<div class="city-box">
 			<span class="city-label">监控区域</span>
 			<div class="city-list">
-				<div
-					class="city-item"
-					:class="{ active: currentCity === index }"
-					v-for="(city, index) in cities"
-					:key="index"
-					@click="switchCity(index)"
-				>
+				<div class="city-item" :class="{ active: currentCity === index }" v-for="(city, index) in cities"
+					:key="index" @click="switchCity(index)">
 					{{ city.name }}
 				</div>
 			</div>
@@ -37,12 +32,7 @@
 				<span class="alert-count">{{ alertList.length }}</span>
 			</div>
 			<div class="alert-list">
-				<div
-					class="alert-item"
-					:class="'level-' + item.level"
-					v-for="(item, idx) in alertList"
-					:key="idx"
-				>
+				<div class="alert-item" :class="'level-' + item.level" v-for="(item, idx) in alertList" :key="idx">
 					<span class="alert-time">{{ item.time }}</span>
 					<span class="alert-name">{{ item.name }}</span>
 					<span class="alert-tag">{{ item.levelText }}</span>
@@ -83,7 +73,7 @@ export default {
 	},
 	computed: {
 		cities() {
-			return NANJING_DISTRICTS.map(function(d, i) {
+			return NANJING_DISTRICTS.map(function (d, i) {
 				return {
 					name: d.name,
 					adcode: d.adcode,
@@ -111,7 +101,7 @@ export default {
 	methods: {
 		mapInit() {
 			var self = this;
-			loadAMap(['AMap.DistrictSearch']).then(function(AMap) {
+			loadAMap(['AMap.DistrictSearch']).then(function (AMap) {
 				self.AMap = AMap;
 				self.map = new AMap.Map('glowwall-container', {
 					center: NANJING_CENTER,
@@ -131,11 +121,11 @@ export default {
 
 				// 加载 Loca 可视化库用于立体光墙
 				return loadLoca(AMap);
-			}).then(function(Loca) {
+			}).then(function (Loca) {
 				self.Loca = Loca;
 				self.drawCity();
 				self.startRotate();
-			}).catch(function(err) {
+			}).catch(function (err) {
 				console.error('GlowWall3D 加载失败:', err);
 			});
 		},
@@ -149,7 +139,7 @@ export default {
 			self.map.setZoomAndCenter(12, center);
 
 			// 查询区边界画发光描边 + 立体光墙（带兜底）
-			self.fetchDistrictBoundary(city.adcode, function(bounds) {
+			self.fetchDistrictBoundary(city.adcode, function (bounds) {
 				if (!self.map) return;
 				if (bounds && bounds.length > 0) {
 					for (var j = 0; j < bounds.length; j++) {
@@ -168,7 +158,7 @@ export default {
 			var self = this;
 			if (!self.Loca) return;
 			// 取所有边界环作为多边形特征
-			var features = bounds.map(function(path, idx) {
+			var features = bounds.map(function (path, idx) {
 				return {
 					type: 'Feature',
 					geometry: { type: 'Polygon', coordinates: [path] },
@@ -195,12 +185,12 @@ export default {
 				// 顶面颜色
 				topColor: 'rgba(254, 224, 139, 0.6)'
 			});
-			try { self.prismLayer.render(); } catch (e) {}
+			try { self.prismLayer.render(); } catch (e) { }
 		},
 		// 取单个区的边界坐标
 		fetchDistrictBoundary(adcode, callback) {
 			var self = this;
-			self.districtSearch.search(adcode, function(status, result) {
+			self.districtSearch.search(adcode, function (status, result) {
 				if (!self.map) return;
 				if (status === 'complete' && result && result.districtList && result.districtList.length > 0) {
 					var bounds = result.districtList[0].boundaries;
@@ -312,7 +302,7 @@ export default {
 		},
 		startRotate() {
 			var self = this;
-			self.rotateTimer = setInterval(function() {
+			self.rotateTimer = setInterval(function () {
 				if (!self.radarSector || !self.map) return;
 				self.radarSector._angle = (self.radarSector._angle + 4) % 360;
 				self.radarSector.setPath(
@@ -328,24 +318,24 @@ export default {
 		clearObjects() {
 			var self = this;
 			for (var i = 0; i < self.areaPolygons.length; i++) {
-				try { self.areaPolygons[i].setMap(null); } catch (e) {}
+				try { self.areaPolygons[i].setMap(null); } catch (e) { }
 			}
 			self.areaPolygons = [];
 			if (self.prismLayer) {
-				try { self.prismLayer.setMap(null); } catch (e) {}
-				try { self.prismLayer.destroy(); } catch (e) {}
+				try { self.prismLayer.setMap(null); } catch (e) { }
+				try { self.prismLayer.destroy(); } catch (e) { }
 				self.prismLayer = null;
 			}
 			for (var j = 0; j < self.radarMarkers.length; j++) {
-				try { self.radarMarkers[j].setMap(null); } catch (e) {}
+				try { self.radarMarkers[j].setMap(null); } catch (e) { }
 			}
 			self.radarMarkers = [];
 			if (self.radarSector) {
-				try { self.radarSector.setMap(null); } catch (e) {}
+				try { self.radarSector.setMap(null); } catch (e) { }
 				self.radarSector = null;
 			}
 			for (var k = 0; k < self.alertMarkers.length; k++) {
-				try { self.alertMarkers[k].setMap(null); } catch (e) {}
+				try { self.alertMarkers[k].setMap(null); } catch (e) { }
 			}
 			self.alertMarkers = [];
 		},
@@ -375,7 +365,7 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 	};
 	var list = landmarks[districtName] || [[districtName + '·中心', 2]];
 	var levelText = { 1: '高危', 2: '中危', 3: '低危' };
-	return list.map(function(item, i) {
+	return list.map(function (item, i) {
 		var totalMin = 20 * 60 + idx * 18 + i * 7;
 		var h = Math.floor(totalMin / 60) % 24;
 		var m = totalMin % 60;
@@ -425,6 +415,7 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 		color: #ffffff;
 		letter-spacing: 0.5px;
 	}
+
 	.title-sub {
 		display: block;
 		margin-top: 4px;
@@ -452,12 +443,14 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 		color: @grey;
 		margin-bottom: 8px;
 	}
+
 	.city-list {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 6px;
 		max-width: 296px;
 	}
+
 	.city-item {
 		padding: 4px 10px;
 		font-size: 12px;
@@ -468,9 +461,11 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 		transition: all 0.2s ease;
 		white-space: nowrap;
 	}
+
 	.city-item:hover {
 		background: rgba(66, 185, 131, 0.18);
 	}
+
 	.city-item.active {
 		background: @green;
 		color: #0d1117;
@@ -505,12 +500,14 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 			margin-right: 8px;
 			animation: alert-blink 1s infinite;
 		}
+
 		.alert-title {
 			flex: 1;
 			font-size: 14px;
 			font-weight: bold;
 			color: @green;
 		}
+
 		.alert-count {
 			font-size: 12px;
 			color: @red;
@@ -525,9 +522,11 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 		max-height: 200px;
 		overflow-y: auto;
 	}
+
 	.alert-list::-webkit-scrollbar {
 		width: 4px;
 	}
+
 	.alert-list::-webkit-scrollbar-thumb {
 		background: rgba(66, 185, 131, 0.4);
 		border-radius: 2px;
@@ -545,6 +544,7 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 			font-size: 11px;
 			color: @grey;
 		}
+
 		.alert-name {
 			flex: 1;
 			font-size: 12px;
@@ -554,19 +554,23 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 			white-space: nowrap;
 			text-overflow: ellipsis;
 		}
+
 		.alert-tag {
 			font-size: 11px;
 			padding: 1px 6px;
 			border-radius: 8px;
 		}
+
 		&.level-1 .alert-tag {
 			color: #d73027;
 			background: rgba(215, 48, 39, 0.18);
 		}
+
 		&.level-2 .alert-tag {
 			color: #fc8d59;
 			background: rgba(252, 141, 89, 0.18);
 		}
+
 		&.level-3 .alert-tag {
 			color: #fee08b;
 			background: rgba(254, 224, 139, 0.18);
@@ -575,11 +579,13 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 }
 
 @keyframes alert-blink {
+
 	0%,
 	100% {
 		opacity: 1;
 		box-shadow: 0 0 6px @red;
 	}
+
 	50% {
 		opacity: 0.3;
 		box-shadow: 0 0 0 @red;
@@ -591,6 +597,7 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 		opacity: 0;
 		transform: translateX(-10px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateX(0);
@@ -622,6 +629,7 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 		animation: scan-rotate 1s linear infinite;
 		margin-bottom: 8px;
 	}
+
 	.scan-text {
 		font-size: 12px;
 		color: @green;
@@ -632,6 +640,7 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 	from {
 		transform: rotate(0deg);
 	}
+
 	to {
 		transform: rotate(360deg);
 	}
@@ -641,6 +650,7 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 	.alert-box {
 		display: none;
 	}
+
 	.city-box {
 		max-width: 240px;
 	}

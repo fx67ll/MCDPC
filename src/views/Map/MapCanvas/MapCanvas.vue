@@ -15,7 +15,8 @@
 				<span v-show="this.isCheckArea === false">确定绘制区域</span>
 				<span v-show="this.isCheckArea === true">重新确定绘制区域</span>
 			</div>
-			<div v-show="this.isCheckArea === true && this.pathArr.length > 2 && this.tooltype === 'custom'" @click="drawArea">将线段绘制成闭合区域</div>
+			<div v-show="this.isCheckArea === true && this.pathArr.length > 2 && this.tooltype === 'custom'"
+				@click="drawArea">将线段绘制成闭合区域</div>
 			<div v-show="this.tooltype === 'gaode'" @click="draw('line')">绘制线段</div>
 			<div @click="cancel">撤销</div>
 			<div v-show="this.isDrawTestArea === false" @click="drawTest">绘制演示图形</div>
@@ -111,7 +112,7 @@ export default {
 		mapcenter: {
 			type: Array,
 			required: false,
-			default: function() {
+			default: function () {
 				var arr = [118.779611, 32.016625];
 				return arr;
 			},
@@ -147,7 +148,7 @@ export default {
 		strokeColor: {
 			type: Array,
 			required: false,
-			default: function() {
+			default: function () {
 				// 如果只想用一种颜色，那可以去用高德自带的画图工具，没有必要使用自定义的canvas画图工具
 				var arr = [
 					{
@@ -180,7 +181,7 @@ export default {
 			validator(arr) {
 				var vaildNum = 0;
 				if (arr.length > 0) {
-					_.each(arr, function(item, key) {
+					_.each(arr, function (item, key) {
 						if (item.hasOwnProperty('opacityPos') && item.hasOwnProperty('strokeCo')) {
 							if (new RegExp('^(0(\.\d{1,2})?|1(\.0{1,2})?)$').test(item.opacityPos)) {
 								if (new RegExp('^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$').test(item.strokeCo)) {
@@ -201,7 +202,7 @@ export default {
 		shadowStyle: {
 			type: Object,
 			required: false,
-			default: function() {
+			default: function () {
 				var obj = {
 					shadowColor: '#D3D3D3', // 阴影的颜色，值为十六进制颜色码
 					shadowBlur: 5, // 阴影的模糊级数，值为正整数
@@ -234,7 +235,7 @@ export default {
 		fillStyle: {
 			type: Object,
 			required: false,
-			default: function() {
+			default: function () {
 				var obj = {
 					isFill: true, // 表示连接所有线段绘制封闭图形后是否需要填充，不填充的话可以直接传false，下面的属性也不会再验证
 					fillColor: [
@@ -274,7 +275,7 @@ export default {
 						if (obj.hasOwnProperty('fillColor')) {
 							var vaildNum = 0;
 							if (obj.fillColor.length > 0) {
-								_.each(obj.fillColor, function(item, key) {
+								_.each(obj.fillColor, function (item, key) {
 									if (item.hasOwnProperty('opacityPos') && item.hasOwnProperty('fillCo')) {
 										if (new RegExp('^(0(\.\d{1,2})?|1(\.0{1,2})?)$').test(item.opacityPos)) {
 											if (new RegExp('^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$').test(item.fillCo)) {
@@ -334,7 +335,7 @@ export default {
 		mapInit() {
 			var self = this;
 			// 2.0 按需懒加载，MouseTool 用于高德官方绘制工具
-			loadAMap(['AMap.MouseTool']).then(function(AMap) {
+			loadAMap(['AMap.MouseTool']).then(function (AMap) {
 				self.AMap = AMap;
 				self.map = new AMap.Map('map-container', {
 					center: self.mapcenter,
@@ -349,7 +350,7 @@ export default {
 				// 初始化自定义图层（2.0 用 CustomLayer 替代废弃的 CanvasLayer）
 				self.initCustomLayer();
 
-				self.map.on('click', function(e) {
+				self.map.on('click', function (e) {
 					// 确定绘制区域之后开始收集作画点集合
 					if (self.isCheckArea === true) {
 						if (self.pathArr.length !== 0) {
@@ -365,7 +366,7 @@ export default {
 						}
 					}
 				});
-			}).catch(function(err) {
+			}).catch(function (err) {
 				console.error('MapCanvas 加载失败:', err);
 			});
 		},
@@ -385,7 +386,7 @@ export default {
 				zooms: [3, 18]
 			});
 			// render 回调：每次重绘时同步 canvas 尺寸并按当前 pathArr 重绘
-			self.customLayer.render = function() {
+			self.customLayer.render = function () {
 				self.renderCanvas();
 			};
 			self.map.add(self.customLayer);
@@ -445,7 +446,7 @@ export default {
 			context.beginPath();
 			var startpixel = map.lngLatToContainer(new self.AMap.LngLat(path[0].x, path[0].y));
 			context.moveTo(startpixel.x, startpixel.y);
-			_.each(path, function(item, key) {
+			_.each(path, function (item, key) {
 				if (key !== 0) {
 					var pixel = map.lngLatToContainer(new self.AMap.LngLat(item.x, item.y));
 					context.lineTo(pixel.x, pixel.y);
@@ -472,7 +473,7 @@ export default {
 			self.isClosed = true;
 			self.map.setZoomAndCenter(13, [118.779611, 32.016625]);
 			// 等待地图视角切换完成后触发重绘
-			setTimeout(function() {
+			setTimeout(function () {
 				if (self.customLayer) {
 					self.customLayer.render();
 				}
@@ -481,7 +482,7 @@ export default {
 		// 处理线渐变
 		handleStrokeGadient(context, strokecolor, startpixel, endpixel) {
 			var gradient = context.createLinearGradient(startpixel.x, startpixel.y, endpixel.x, endpixel.y); //线性渐变的起止坐标
-			_.each(strokecolor, function(item, key) {
+			_.each(strokecolor, function (item, key) {
 				// 创建渐变的开始颜色，0表示偏移量，个人理解为直线上的相对位置，最大为1，一个渐变中可以写任意个渐变颜色
 				gradient.addColorStop(item.opacityPos, item.strokeCo);
 			});
@@ -528,7 +529,7 @@ export default {
 				if (fillstyle.gradientDirection === 'right-left') {
 					gradient = context.createLinearGradient(tr.x, tr.y, tl.x, tl.y);
 				}
-				_.each(fillstyle.fillColor, function(item, key) {
+				_.each(fillstyle.fillColor, function (item, key) {
 					// 创建渐变的开始颜色，0表示偏移量，个人理解为直线上的相对位置，最大为1，一个渐变中可以写任意个渐变颜色
 					gradient.addColorStop(item.opacityPos, item.fillCo);
 				});
@@ -604,7 +605,7 @@ export default {
 				strokeWeight: 10,
 				strokeStyle: 'solid'
 			});
-			mouseTool.on('draw', function(event) {
+			mouseTool.on('draw', function (event) {
 				var path = event.obj.getPath();
 				// console.log(path);
 			});
@@ -647,17 +648,23 @@ export default {
 </script>
 
 <style lang="less" scoped>
-/deep/ .canvas-new {
-	// border: 1px solid red !important;
-}
+// /deep/ .canvas-new {
+// 	border: 1px solid red !important;
+// }
 
 .ban-user-select {
-	-webkit-touch-callout: none; /* iOS Safari */
-	-webkit-user-select: none; /* Chrome/Safari/Opera */
-	-khtml-user-select: none; /* Konqueror */
-	-moz-user-select: none; /* Firefox */
-	-ms-user-select: none; /* Internet Explorer/Edge */
-	user-select: none; /* Non-prefixed version, currently not supported by any browser */
+	-webkit-touch-callout: none;
+	/* iOS Safari */
+	-webkit-user-select: none;
+	/* Chrome/Safari/Opera */
+	-khtml-user-select: none;
+	/* Konqueror */
+	-moz-user-select: none;
+	/* Firefox */
+	-ms-user-select: none;
+	/* Internet Explorer/Edge */
+	user-select: none;
+	/* Non-prefixed version, currently not supported by any browser */
 }
 
 .map {
@@ -665,6 +672,7 @@ export default {
 	height: 100%;
 	position: relative;
 	color: #42b983;
+
 	#map-container {
 		width: 100%;
 		height: 100%;

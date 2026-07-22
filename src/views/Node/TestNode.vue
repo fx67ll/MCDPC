@@ -12,7 +12,8 @@
 				<el-table-column prop="title" label="标题"></el-table-column>
 				<el-table-column prop="detail" label="内容"></el-table-column>
 				<el-table-column prop="price" label="价格"></el-table-column>
-				<el-table-column label="操作" align="center" width="120" class-name="small-padding fixed-width"><template slot-scope="scope"></template></el-table-column>
+				<el-table-column label="操作" align="center" width="120" class-name="small-padding fixed-width"><template
+						slot-scope="scope"></template></el-table-column>
 			</el-table>
 		</el-row>
 	</div>
@@ -64,6 +65,7 @@ export default {
 	width: 70%;
 	height: 100%;
 	margin: 0 auto;
+
 	.ndoe-btnbox {
 		padding: 40px 0 20px 0;
 	}

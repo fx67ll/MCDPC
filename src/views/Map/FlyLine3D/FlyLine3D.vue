@@ -17,13 +17,8 @@
 		<div class="hub-box">
 			<span class="hub-label">中心区域</span>
 			<div class="hub-list">
-				<div
-					class="hub-item"
-					:class="{ active: currentHub === index }"
-					v-for="(hub, index) in hubs"
-					:key="index"
-					@click="switchHub(index)"
-				>
+				<div class="hub-item" :class="{ active: currentHub === index }" v-for="(hub, index) in hubs"
+					:key="index" @click="switchHub(index)">
 					{{ hub.name }}
 				</div>
 			</div>
@@ -76,18 +71,18 @@ export default {
 			var hub = self.currentHubData;
 			if (!hub) return [];
 			var targets = self.allDistricts
-				.filter(function(d) {
+				.filter(function (d) {
 					return d.adcode !== hub.adcode;
 				})
-				.map(function(d) {
+				.map(function (d) {
 					return { name: d.name, base: d.base };
 				})
-				.sort(function(a, b) {
+				.sort(function (a, b) {
 					return b.base - a.base;
 				})
 				.slice(0, 8);
 			var max = targets[0] ? targets[0].base : 100;
-			return targets.map(function(t, i) {
+			return targets.map(function (t, i) {
 				var val = t.base - i * 2;
 				return { name: t.name, val: val + '次', percent: Math.round((val / max) * 100) };
 			});
@@ -107,9 +102,9 @@ export default {
 	methods: {
 		mapInit() {
 			var self = this;
-			loadAMap([]).then(function(AMap) {
+			loadAMap([]).then(function (AMap) {
 				self.AMap = AMap;
-				var pukou = self.allDistricts.find(function(d) { return d.name === '浦口区'; });
+				var pukou = self.allDistricts.find(function (d) { return d.name === '浦口区'; });
 				var center = pukou ? pukou.center : NANJING_CENTER;
 				self.map = new AMap.Map('flyline-container', {
 					center: center,
@@ -118,7 +113,7 @@ export default {
 				});
 				self.drawFlyLines();
 				self.startAnim();
-			}).catch(function(err) {
+			}).catch(function (err) {
 				console.error('FlyLine3D 加载失败:', err);
 			});
 		},
@@ -132,7 +127,7 @@ export default {
 			// 中心端点标记（暖色，较大）
 			self.addEndMarker(hub.center, '#ef8e81', 9);
 
-			var targets = self.allDistricts.filter(function(d) {
+			var targets = self.allDistricts.filter(function (d) {
 				return d.adcode !== hub.adcode;
 			});
 
@@ -213,7 +208,7 @@ export default {
 		},
 		startAnim() {
 			var self = this;
-			self.animTimer = setInterval(function() {
+			self.animTimer = setInterval(function () {
 				for (var i = 0; i < self.dots.length; i++) {
 					var dot = self.dots[i];
 					dot._progress += 0.012;
@@ -234,15 +229,15 @@ export default {
 		clearAll() {
 			var self = this;
 			for (var i = 0; i < self.lines.length; i++) {
-				try { self.lines[i].setMap(null); } catch (e) {}
+				try { self.lines[i].setMap(null); } catch (e) { }
 			}
 			self.lines = [];
 			for (var j = 0; j < self.dots.length; j++) {
-				try { self.dots[j].setMap(null); } catch (e) {}
+				try { self.dots[j].setMap(null); } catch (e) { }
 			}
 			self.dots = [];
 			for (var k = 0; k < self.endMarkers.length; k++) {
-				try { self.endMarkers[k].setMap(null); } catch (e) {}
+				try { self.endMarkers[k].setMap(null); } catch (e) { }
 			}
 			self.endMarkers = [];
 		},
@@ -290,6 +285,7 @@ export default {
 		color: #ffffff;
 		letter-spacing: 0.5px;
 	}
+
 	.title-sub {
 		display: block;
 		margin-top: 4px;
@@ -317,12 +313,14 @@ export default {
 		color: @grey;
 		margin-bottom: 8px;
 	}
+
 	.hub-list {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 6px;
 		max-width: 296px;
 	}
+
 	.hub-item {
 		padding: 4px 10px;
 		font-size: 12px;
@@ -333,9 +331,11 @@ export default {
 		transition: all 0.2s ease;
 		white-space: nowrap;
 	}
+
 	.hub-item:hover {
 		background: rgba(66, 185, 131, 0.18);
 	}
+
 	.hub-item.active {
 		background: @green;
 		color: #0d1117;
@@ -369,9 +369,11 @@ export default {
 		max-height: 240px;
 		overflow-y: auto;
 	}
+
 	.stat-list::-webkit-scrollbar {
 		width: 4px;
 	}
+
 	.stat-list::-webkit-scrollbar-thumb {
 		background: rgba(66, 185, 131, 0.4);
 		border-radius: 2px;
@@ -390,11 +392,13 @@ export default {
 			color: #fee08b;
 			text-align: center;
 		}
+
 		.stat-name {
 			width: 56px;
 			font-size: 12px;
 			color: #ffffff;
 		}
+
 		.stat-bar-bg {
 			flex: 1;
 			height: 8px;
@@ -403,12 +407,14 @@ export default {
 			border-radius: 4px;
 			overflow: hidden;
 		}
+
 		.stat-bar {
 			height: 100%;
 			border-radius: 4px;
 			background: linear-gradient(90deg, #42b983, #fee08b, #ef8e81);
 			transition: width 0.6s ease;
 		}
+
 		.stat-val {
 			width: 44px;
 			text-align: right;
@@ -423,6 +429,7 @@ export default {
 		opacity: 0;
 		transform: translateX(-10px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateX(0);
@@ -433,6 +440,7 @@ export default {
 	.stat-box {
 		display: none;
 	}
+
 	.hub-box {
 		max-width: 240px;
 	}
