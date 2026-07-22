@@ -43,8 +43,7 @@
 			</div>
 
 			<!-- 工具卡片（仅开发环境显示，build 发布后不展示） -->
-			<!-- <div class="card-grid" v-show="isDev"> -->
-			<div class="card-grid">
+			<div class="card-grid" v-show="isDev">
 				<div class="demo-card tool" v-for="(item, index) in toolDemos" :key="'tool' + index"
 					@click="goRoute(item.path)">
 					<div class="card-icon" :style="{ background: item.bg }">
