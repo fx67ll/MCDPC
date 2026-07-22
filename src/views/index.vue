@@ -217,16 +217,12 @@ export default {
 		}
 	}
 
-	@linkMarginTop: 10px;
-	@linkMarginBotton: 0;
-
 	.fx67ll-link {
 		flex: 1;
 		min-height: 0; // flex 子项允许收缩到内容以下，从而内部滚动生效
 		overflow-y: auto;
 		overflow-x: hidden;
-		padding: 0 24px;
-		margin: @linkMarginTop 0 @linkMarginBotton 0;
+		padding: 10px 24px 0 24px;
 		position: relative;
 		z-index: @textZindex;
 
