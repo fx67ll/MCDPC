@@ -13,6 +13,9 @@
 			<span class="title-sub">3D 倾斜 · 区域光墙 · 雷达扫描 · 告警监控</span>
 		</div>
 
+		<!-- 源码/文档入口（右边缘收缩胶囊） -->
+		<view-source-btn code="GlowWall3D"></view-source-btn>
+
 		<!-- 监控区域切换（南京 11 区） -->
 		<div class="city-box">
 			<span class="city-label">监控区域</span>

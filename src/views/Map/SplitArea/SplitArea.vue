@@ -21,6 +21,9 @@
 			</div>
 		</div>
 
+		<!-- 源码/文档入口（右边缘收缩胶囊） -->
+		<view-source-btn code="SplitArea"></view-source-btn>
+
 		<!-- 模式开关：全国通用 / 个人私用 -->
 		<div class="mode-box">
 			<span class="mode-label">显示模式</span>

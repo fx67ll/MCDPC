@@ -11,6 +11,9 @@
 			<span class="title-sub">24小时动态热力图 · 随时间推移观察人口聚集变化</span>
 		</div>
 
+		<!-- 源码/文档入口（右边缘收缩胶囊） -->
+		<view-source-btn code="HeatMapPoint"></view-source-btn>
+
 		<!-- 图例（右上角，置于返回按钮下方避免遮挡） -->
 		<div class="legend-box">
 			<span class="legend-label">低</span>

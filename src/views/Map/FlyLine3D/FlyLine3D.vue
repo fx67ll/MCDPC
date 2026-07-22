@@ -13,6 +13,9 @@
 			<span class="title-sub">2D 贝塞尔飞线 · 实时光点流动 · 点击切换中心</span>
 		</div>
 
+		<!-- 源码/文档入口（右边缘收缩胶囊） -->
+		<view-source-btn code="FlyLine3D"></view-source-btn>
+
 		<!-- 中心区域切换（全部 11 区） -->
 		<div class="hub-box">
 			<span class="hub-label">中心区域</span>
