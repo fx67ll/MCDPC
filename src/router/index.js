@@ -90,6 +90,12 @@ const router = new Router({
 
 // 全局路由守卫
 router.beforeEach((to, from, next) => {
+  // 生产环境禁用开发专用路由（/test、/devtest），重定向到首页
+  const isProd = process.env.VUE_APP_ENV === 'production';
+  if (isProd && (to.name === 'test' || to.name === 'devtest')) {
+    next({ name: 'index' });
+    return;
+  }
   // 不是首页的话将自动显示统一返回按钮
   if (to.name !== 'index') {
     store.dispatch('setBtnStateAsync', true);
