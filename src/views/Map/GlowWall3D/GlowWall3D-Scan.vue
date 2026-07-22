@@ -43,14 +43,10 @@
 			</div>
 		</div>
 
-		<!-- 扫描状态（点击暂停/开始） -->
-		<div class="scan-box" :class="{ paused: !isScanning }" @click="toggleScan"
-			:title="isScanning ? '点击暂停扫描' : '点击开始扫描'">
-			<div class="scan-icon-wrap">
-				<div class="scan-ring"></div>
-				<span class="scan-ring-icon">{{ isScanning ? '❚❚' : '▶' }}</span>
-			</div>
-			<span class="scan-text">{{ isScanning ? '扫描中' : '已暂停' }}</span>
+		<!-- 扫描状态 -->
+		<div class="scan-box">
+			<div class="scan-ring"></div>
+			<span class="scan-text">雷达扫描中</span>
 		</div>
 
 		<div id="glowwall-container" ref="map"></div>
@@ -68,13 +64,12 @@ export default {
 			AMap: null,
 			Loca: null,
 			map: null,
-			areaPolygons: [], // 区域光墙覆盖物集合（填充 + 描边 + 高亮线）
-			wallLayer: null, // 立体光墙 Loca.PolygonLayer（拉伸多边形）
+			areaPolygons: [], // 区域发光描边多边形
+			prismLayer: null, // 立体光墙 Loca.PrismLayer
 			radarSector: null, // 雷达扫描扇形
 			radarMarkers: [], // 雷达圆环 + 中心点
 			alertMarkers: [], // 告警点
 			rotateTimer: null,
-			isScanning: true, // 雷达扫描是否进行中
 			currentCity: 4, // 默认浦口区
 			districtSearch: null
 		};
@@ -127,7 +122,7 @@ export default {
 					subdistrict: 0
 				});
 
-				// 加载 Loca 用于立体光墙（PolygonLayer 拉伸）
+				// 加载 Loca 可视化库用于立体光墙
 				return loadLoca(AMap);
 			}).then(function (Loca) {
 				self.Loca = Loca;
@@ -146,40 +141,25 @@ export default {
 			var center = city.center;
 			self.map.setZoomAndCenter(12, center);
 
-			// 查询区边界画发光光墙 + 立体光墙（带兜底）
+			// 查询区边界画发光描边 + 立体光墙（带兜底）
 			self.fetchDistrictBoundary(city.adcode, function (bounds) {
 				if (!self.map) return;
 				if (bounds && bounds.length > 0) {
 					for (var j = 0; j < bounds.length; j++) {
 						self.addGlowWall(bounds[j]);
 					}
-					// 立体光墙：Loca.PolygonLayer 拉伸区界多边形（试验，当前 Loca 版本可能不渲染）
+					// 用区界构建立体光墙（Loca.PrismLayer 沿边界拉伸）
 					self.addPrismWall(bounds);
 				}
 			});
 
-
 			self.addRadar(center);
 			self.addAlertPoints(city, center);
 		},
-		// 立体光墙：用区界多边形作为 PolygonLayer 数据，向上拉伸固定高度
+		// 立体光墙：用区界多边形作为 PrismLayer 数据，向上拉伸固定高度
 		addPrismWall(bounds) {
 			var self = this;
-			if (!self.Loca) {
-				console.warn('[GlowWall3D] Loca 未加载，立体光墙跳过');
-				return;
-			}
-			if (!self.Loca.PolygonLayer) {
-				console.warn('[GlowWall3D] 当前 Loca 版本不支持 PolygonLayer');
-				return;
-			}
-			console.log('[GlowWall3D] 构建立体光墙，边界环数:', bounds.length);
-			// 清除上一次的立体墙
-			if (self.wallLayer) {
-				try { self.wallLayer.setMap(null); } catch (e) { }
-				try { self.wallLayer.destroy(); } catch (e) { }
-				self.wallLayer = null;
-			}
+			if (!self.Loca) return;
 			// 取所有边界环作为多边形特征
 			var features = bounds.map(function (path, idx) {
 				return {
@@ -191,32 +171,24 @@ export default {
 			var source = new self.Loca.GeoJSONSource({
 				data: { type: 'FeatureCollection', features: features }
 			});
-			self.wallLayer = new self.Loca.PolygonLayer({
+			self.prismLayer = new self.Loca.PrismLayer({
 				map: self.map,
 				zIndex: 120,
 				depth: true,
 				visible: true,
 				zooms: [3, 20]
 			});
-			self.wallLayer.setSource(source);
-			self.wallLayer.setStyle({
-				// 向上拉伸高度（米），函数式确保生效
-				height: function () {
-					return 8000;
-				},
+			self.prismLayer.setSource(source);
+			self.prismLayer.setStyle({
+				// 围墙高度（米），拉出立体感
+				height: 1500,
+				// 侧面顶部/底部颜色渐变（发光感）
+				sideTopColor: 'rgba(66, 185, 131, 0.9)',
+				sideBottomColor: 'rgba(66, 185, 131, 0.1)',
 				// 顶面颜色
-				topColor: 'rgba(254, 224, 139, 0.7)',
-				// 侧面渐变：顶部亮、底部稍暗，都保持较高不透明度确保可见
-				sideTopColor: 'rgba(66, 185, 131, 0.95)',
-				sideBottomColor: 'rgba(66, 185, 131, 0.6)',
-				// 底面
-				bottomColor: 'rgba(66, 185, 131, 0.5)',
-				// 顶面轮廓线
-				strokeColor: 'rgba(160, 240, 208, 1)',
-				strokeWidth: 2
+				topColor: 'rgba(254, 224, 139, 0.6)'
 			});
-			try { self.wallLayer.render(); } catch (e) { console.warn('[GlowWall3D] wallLayer.render 异常:', e); }
-			console.log('[GlowWall3D] 立体光墙已构建，若仍不可见则当前 Loca 版本的 PolygonLayer 拉伸不渲染');
+			try { self.prismLayer.render(); } catch (e) { }
 		},
 		// 取单个区的边界坐标
 		fetchDistrictBoundary(adcode, callback) {
@@ -233,65 +205,21 @@ export default {
 				callback(null);
 			});
 		},
-		// 区域发光光墙：粗描边 + 高亮内线 + 呼吸动画，3D 倾斜视角下呈发光墙体效果
+		// 区域发光描边（模拟立体光墙效果）
 		addGlowWall(path) {
 			var self = this;
-			// 闭合路径
-			var closedPath = path.slice();
-			if (closedPath.length > 0) {
-				var first = closedPath[0];
-				var last = closedPath[closedPath.length - 1];
-				if (first[0] !== last[0] || first[1] !== last[1]) {
-					closedPath.push(first);
-				}
-			}
-			// 1. 区域淡填充
-			var fill = new self.AMap.Polygon({
-				path: closedPath,
+			var polygon = new self.AMap.Polygon({
+				path: path,
 				strokeColor: '#42b983',
-				strokeWeight: 1,
-				strokeOpacity: 0.4,
+				strokeWeight: 3,
+				strokeOpacity: 0.9,
 				strokeStyle: 'solid',
 				fillColor: '#42b983',
-				fillOpacity: 0.06,
+				fillOpacity: 0.08,
 				zIndex: 50
 			});
-			fill.setMap(self.map);
-			self.areaPolygons.push(fill);
-			// 2. 外层粗发光描边（模拟墙体厚度 + 光晕）
-			var glowLine = new self.AMap.Polyline({
-				path: closedPath,
-				strokeColor: '#42b983',
-				strokeWeight: 10,
-				strokeOpacity: 0.55,
-				strokeStyle: 'solid',
-				lineJoin: 'round',
-				lineCap: 'round',
-				zIndex: 51
-			});
-			glowLine.setMap(self.map);
-			self.areaPolygons.push(glowLine);
-			// 3. 内层高亮细线（墙体顶部高光）
-			var coreLine = new self.AMap.Polyline({
-				path: closedPath,
-				strokeColor: '#a0f0d0',
-				strokeWeight: 2,
-				strokeOpacity: 1,
-				strokeStyle: 'solid',
-				lineJoin: 'round',
-				zIndex: 52
-			});
-			coreLine.setMap(self.map);
-			self.areaPolygons.push(coreLine);
-			// 4. 呼吸动画（外层描边透明度循环变化，营造光墙闪烁感）
-			var dir = 1;
-			var opacity = 0.55;
-			glowLine._breathTimer = setInterval(function () {
-				opacity += dir * 0.03;
-				if (opacity >= 0.85) { opacity = 0.85; dir = -1; }
-				if (opacity <= 0.35) { opacity = 0.35; dir = 1; }
-				try { glowLine.setOptions({ strokeOpacity: opacity }); } catch (e) { }
-			}, 60);
+			polygon.setMap(self.map);
+			self.areaPolygons.push(polygon);
 		},
 		// 雷达扫描：多层圆环 + 旋转扇形 + 中心点
 		addRadar(center) {
@@ -377,8 +305,6 @@ export default {
 		},
 		startRotate() {
 			var self = this;
-			if (self.rotateTimer) return; // 已在运行
-			self.isScanning = true;
 			self.rotateTimer = setInterval(function () {
 				if (!self.radarSector || !self.map) return;
 				self.radarSector._angle = (self.radarSector._angle + 4) % 360;
@@ -386,21 +312,6 @@ export default {
 					self.buildSectorPath(self.radarSector._center, self.radarSector._radius, self.radarSector._angle, 36)
 				);
 			}, 50);
-		},
-		// 暂停 / 开始雷达扫描
-		toggleScan() {
-			if (this.isScanning) {
-				this.pauseScan();
-			} else {
-				this.startRotate();
-			}
-		},
-		pauseScan() {
-			this.isScanning = false;
-			if (this.rotateTimer) {
-				clearInterval(this.rotateTimer);
-				this.rotateTimer = null;
-			}
 		},
 		switchCity(index) {
 			if (index === this.currentCity) return;
@@ -410,17 +321,13 @@ export default {
 		clearObjects() {
 			var self = this;
 			for (var i = 0; i < self.areaPolygons.length; i++) {
-				// 清除光墙呼吸动画定时器
-				if (self.areaPolygons[i]._breathTimer) {
-					clearInterval(self.areaPolygons[i]._breathTimer);
-				}
 				try { self.areaPolygons[i].setMap(null); } catch (e) { }
 			}
 			self.areaPolygons = [];
-			if (self.wallLayer) {
-				try { self.wallLayer.setMap(null); } catch (e) { }
-				try { self.wallLayer.destroy(); } catch (e) { }
-				self.wallLayer = null;
+			if (self.prismLayer) {
+				try { self.prismLayer.setMap(null); } catch (e) { }
+				try { self.prismLayer.destroy(); } catch (e) { }
+				self.prismLayer = null;
 			}
 			for (var j = 0; j < self.radarMarkers.length; j++) {
 				try { self.radarMarkers[j].setMap(null); } catch (e) { }
@@ -700,89 +607,35 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 	}
 }
 
-/* 扫描状态：横向胶囊，旋转环内嵌播放/暂停图标 */
+/* 扫描状态 */
 .scan-box {
 	position: absolute;
 	bottom: 28px;
 	right: 30px;
 	z-index: 1000;
-	display: inline-flex;
+	display: flex;
+	flex-direction: column;
 	align-items: center;
-	gap: 10px;
-	height: 38px;
-	padding: 0 16px 0 8px;
-	border-radius: 19px;
-	background: rgba(13, 17, 23, 0.82);
+	background: rgba(13, 17, 23, 0.78);
 	backdrop-filter: blur(10px);
-	border: 1px solid rgba(66, 185, 131, 0.45);
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-	cursor: pointer;
-	transition: all 0.25s ease;
-	.ban-user-select();
-
-	&:hover {
-		border-color: @green;
-		box-shadow: 0 6px 20px rgba(66, 185, 131, 0.35);
-		transform: translateY(-2px);
-	}
-
-	.scan-icon-wrap {
-		position: relative;
-		width: 24px;
-		height: 24px;
-		flex-shrink: 0;
-	}
+	border: 1px solid rgba(66, 185, 131, 0.35);
+	border-radius: 10px;
+	padding: 12px 16px;
 
 	.scan-ring {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 24px;
-		height: 24px;
+		width: 28px;
+		height: 28px;
 		border-radius: 50%;
-		border: 2px solid rgba(66, 185, 131, 0.25);
+		border: 2px solid transparent;
 		border-top-color: @green;
 		border-right-color: @green;
 		animation: scan-rotate 1s linear infinite;
-	}
-
-	.scan-ring-icon {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		transform: translate(-32%, -36%);
-		font-size: 9px;
-		color: @green;
-		line-height: 1;
-		pointer-events: none;
+		margin-bottom: 8px;
 	}
 
 	.scan-text {
-		font-size: 13px;
-		font-weight: bold;
+		font-size: 12px;
 		color: @green;
-		line-height: 1;
-		white-space: nowrap;
-	}
-
-	// 暂停状态：环停转 + 变红，图标与文字变红
-	&.paused {
-		border-color: rgba(239, 142, 129, 0.5);
-
-		.scan-ring {
-			animation-play-state: paused;
-			border-color: rgba(239, 142, 129, 0.25);
-			border-top-color: @red;
-			border-right-color: @red;
-		}
-
-		.scan-ring-icon {
-			color: @red;
-		}
-
-		.scan-text {
-			color: @red;
-		}
 	}
 }
 
