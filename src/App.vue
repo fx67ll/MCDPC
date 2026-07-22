@@ -1,16 +1,23 @@
 <template>
 	<div id="app">
-		<router-view></router-view>
-		<!-- 全站统一返回按钮：悬浮玻璃质感，hover 微动效 -->
-		<div v-show="this.$store.state.isShowbckbtn" class="fx67ll-backbtn" @click="back" title="返回">
-			<span class="fx67ll-backbtn-arrow">‹</span>
-			<span class="fx67ll-backbtn-text">返回</span>
-		</div>
+		<transition :name="transitionName" mode="out-in">
+			<router-view></router-view>
+		</transition>
+		<!-- 全站统一返回按钮：悬浮玻璃质感，hover 微动效，淡入出现 -->
+		<transition name="backbtn-fade">
+			<div v-if="this.$store.state.isShowbckbtn" class="fx67ll-backbtn" @click="back" title="返回">
+				<span class="fx67ll-backbtn-arrow">‹</span>
+				<span class="fx67ll-backbtn-text">返回</span>
+			</div>
+		</transition>
 	</div>
 </template>
 
 <script>
 import vueCanvasNest from 'vue-canvas-nest';
+
+// 可用的随机过渡效果集合
+const TRANSITIONS = ['fade', 'slide-left', 'slide-up', 'zoom', 'fade-zoom'];
 
 export default {
 	name: 'app',
@@ -19,6 +26,7 @@ export default {
 	},
 	data() {
 		return {
+			transitionName: 'fade',
 			// nestConfig: {
 			// 	color: 'rgb(186, 186, 186)', // the canvas line color, default: '255,0,0'; the color is (R,G,B)
 			// 	opacity: 0.7, // the opacity of line (0~1), default: 0.7
@@ -27,6 +35,13 @@ export default {
 			// },
 			// isLoadingCompleted: false
 		};
+	},
+	watch: {
+		// 每次路由切换随机选一种过渡动画
+		$route() {
+			var next = TRANSITIONS[Math.floor(Math.random() * TRANSITIONS.length)];
+			this.transitionName = next;
+		}
 	},
 	mounted() {
 		// var self = this;
@@ -77,6 +92,7 @@ body {
 	height: 100%;
 	margin: 0;
 	padding: 0;
+	overflow: hidden; // 避免页面出现双滚动条，滚动交给内部容器
 	font-family: 'PFR';
 	color: @grey;
 }
@@ -142,5 +158,86 @@ body {
 
 .fx67ll-backbtn:active {
 	transform: translateY(0);
+}
+
+/* 返回按钮淡入出现 */
+.backbtn-fade-enter-active {
+	transition: all 0.4s ease;
+}
+.backbtn-fade-leave-active {
+	transition: all 0.25s ease;
+}
+.backbtn-fade-enter,
+.backbtn-fade-leave-to {
+	opacity: 0;
+	transform: translateX(20px);
+}
+
+/* ===== 路由切换随机过渡动画 ===== */
+
+/* 淡入 */
+.fade-enter-active,
+.fade-leave-active {
+	transition: opacity 0.35s ease;
+}
+.fade-enter,
+.fade-leave-to {
+	opacity: 0;
+}
+
+/* 左滑 */
+.slide-left-enter-active,
+.slide-left-leave-active {
+	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.slide-left-enter {
+	opacity: 0;
+	transform: translateX(40px);
+}
+.slide-left-leave-to {
+	opacity: 0;
+	transform: translateX(-40px);
+}
+
+/* 上滑 */
+.slide-up-enter-active,
+.slide-up-leave-active {
+	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.slide-up-enter {
+	opacity: 0;
+	transform: translateY(40px);
+}
+.slide-up-leave-to {
+	opacity: 0;
+	transform: translateY(-40px);
+}
+
+/* 缩放 */
+.zoom-enter-active,
+.zoom-leave-active {
+	transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.zoom-enter {
+	opacity: 0;
+	transform: scale(0.95);
+}
+.zoom-leave-to {
+	opacity: 0;
+	transform: scale(1.05);
+}
+
+/* 淡入缩放 */
+.fade-zoom-enter-active,
+.fade-zoom-leave-active {
+	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fade-zoom-enter {
+	opacity: 0;
+	transform: scale(0.92);
+}
+.fade-zoom-leave-to {
+	opacity: 0;
+	transform: scale(1.03);
 }
 </style>
