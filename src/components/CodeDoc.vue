@@ -1,32 +1,44 @@
 <template>
 	<div class="doc-box">
 		<div class="doc-title">{{ docData.description }}</div>
-		<el-table :data="docData.Attributes" v-if="docData.Attributes.length > 0" border class="doc-table">
-			<el-table-column prop="param" label="参数"></el-table-column>
-			<el-table-column prop="descrbition" label="说明"></el-table-column>
-			<el-table-column prop="type" label="类型"></el-table-column>
-			<el-table-column prop="chooseValue" label="可选值"></el-table-column>
-			<el-table-column prop="defaultValue" label="默认值"></el-table-column>
-		</el-table>
-		<el-table :data="docData.Events" v-if="docData.Events.length > 0" border class="doc-table">
-			<el-table-column prop="events" label="事件名"></el-table-column>
-			<el-table-column prop="events" label="说明"></el-table-column>
-			<el-table-column prop="events" label="参数"></el-table-column>
-		</el-table>
-		<el-table :data="docData.Methods" v-if="docData.Methods.length > 0" border class="doc-table">
-			<el-table-column prop="methods" label="方法名"></el-table-column>
-			<el-table-column prop="methods" label="说明"></el-table-column>
-			<el-table-column prop="methods" label="参数"></el-table-column>
-		</el-table>
-		<el-table :data="docData.Slot" v-if="docData.Slot.length > 0" border class="doc-table">
-			<el-table-column prop="slot" label="插槽名"></el-table-column>
-			<el-table-column prop="slot" label="说明"></el-table-column>
-		</el-table>
+		<div class="doc-section" v-if="docData.Attributes.length > 0">
+			<div class="section-title">属性 Attributes</div>
+			<el-table :data="docData.Attributes" border class="doc-table">
+				<el-table-column prop="param" label="参数"></el-table-column>
+				<el-table-column prop="descrbition" label="说明"></el-table-column>
+				<el-table-column prop="type" label="类型"></el-table-column>
+				<el-table-column prop="chooseValue" label="可选值"></el-table-column>
+				<el-table-column prop="defaultValue" label="默认值"></el-table-column>
+			</el-table>
+		</div>
+		<div class="doc-section" v-if="docData.Methods.length > 0">
+			<div class="section-title">方法 Methods</div>
+			<el-table :data="docData.Methods" border class="doc-table">
+				<el-table-column prop="methods" label="方法名"></el-table-column>
+				<el-table-column prop="descrbition" label="说明"></el-table-column>
+				<el-table-column prop="methods2" label="参数"></el-table-column>
+			</el-table>
+		</div>
+		<div class="doc-section" v-if="docData.Events.length > 0">
+			<div class="section-title">事件 Events</div>
+			<el-table :data="docData.Events" border class="doc-table">
+				<el-table-column prop="events" label="事件名"></el-table-column>
+				<el-table-column prop="descrbition" label="说明"></el-table-column>
+				<el-table-column prop="events2" label="参数"></el-table-column>
+			</el-table>
+		</div>
+		<div class="doc-section" v-if="docData.Slot.length > 0">
+			<div class="section-title">插槽 Slot</div>
+			<el-table :data="docData.Slot" border class="doc-table">
+				<el-table-column prop="slot" label="插槽名"></el-table-column>
+				<el-table-column prop="descrbition" label="说明"></el-table-column>
+			</el-table>
+		</div>
 	</div>
 </template>
 
 <script>
-import MapCanvasDoc from '@a/file/doc/MapCanvas.js';
+import { getDoc } from '@a/file/doc/index.js';
 export default {
 	name: 'codedoc',
 	data() {
@@ -39,15 +51,7 @@ export default {
 	},
 	methods: {
 		initData() {
-			var self = this;
-			switch (self.$route.query.code) {
-				case 'MapCanvasDoc':
-					self.docData = MapCanvasDoc;
-					break;
-				default:
-					self.docData = [];
-					break;
-			}
+			this.docData = getDoc(this.$route.query.code);
 		}
 	}
 };
@@ -55,22 +59,68 @@ export default {
 
 <style lang="less" scoped="scoped">
 .doc-box {
-	width: 1280px;
+	width: 100%;
+	max-width: 1280px;
 	height: 100%;
 	margin: 0 auto;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 20px 24px 60px 24px;
+	box-sizing: border-box;
 
 	.doc-title {
 		width: 100%;
-		height: 80px;
-		line-height: 80px;
+		min-height: 60px;
+		line-height: 60px;
 		text-align: center;
-		font-size: 28px;
+		font-size: 24px;
+		color: #2c3e50;
+		margin-bottom: 20px;
 		.ban-user-select();
+	}
+
+	.doc-section {
+		margin-bottom: 24px;
+
+		.section-title {
+			font-size: 15px;
+			font-weight: bold;
+			color: @green;
+			margin-bottom: 10px;
+			padding-left: 8px;
+			border-left: 3px solid @green;
+		}
 	}
 
 	.doc-table {
 		width: 100%;
-		margin-bottom: 50px;
+	}
+
+	/deep/ .el-table {
+		table-layout: auto;
+		.el-table__cell {
+			.cell {
+				word-break: break-all;
+				white-space: normal;
+			}
+		}
+	}
+}
+
+.doc-box::-webkit-scrollbar {
+	width: 6px;
+}
+.doc-box::-webkit-scrollbar-thumb {
+	background: rgba(66, 185, 131, 0.4);
+	border-radius: 3px;
+}
+
+@media screen and (max-width: 960px) {
+	.doc-box {
+		.doc-title {
+			font-size: 18px;
+		}
+		padding: 16px 14px 30px 14px;
 	}
 }
 </style>
