@@ -16,6 +16,10 @@ import ElementUI from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
 Vue.use(ElementUI);
 
+// 全局注册统一的查看源码/文档入口组件，各 demo 直接使用 <view-source-btn code="XXX">
+import ViewSourceBtn from '@/components/ViewSourceBtn.vue';
+Vue.component('ViewSourceBtn', ViewSourceBtn);
+
 new Vue({
   router,
   store,
