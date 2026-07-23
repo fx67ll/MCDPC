@@ -35,6 +35,11 @@ export const fx67llRoutes = [
     component: () => import('@v/CodeTest.vue'), // 代码测试页面
   },
   {
+    path: '/daily',
+    name: 'daily',
+    component: () => import('@v/DailyCommute/index.vue'), // 每日通勤用时查看页
+  },
+  {
     path: '/devtest',
     name: 'devtest',
     component: () => import('@c/ComponentTest.vue'), // 本地编写组件时候使用的测试页面
@@ -96,8 +101,8 @@ router.beforeEach((to, from, next) => {
     next({ name: 'index' });
     return;
   }
-  // 不是首页的话将自动显示统一返回按钮
-  if (to.name !== 'index') {
+  // 不显示返回按钮：首页 / 每日通勤（daily 为新页签独立页面，无需返回）
+  if (to.name !== 'index' && to.name !== 'daily') {
     store.dispatch('setBtnStateAsync', true);
   } else {
     store.dispatch('setBtnStateAsync', false);

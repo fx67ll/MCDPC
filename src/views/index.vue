@@ -42,8 +42,26 @@
 				</a>
 			</div>
 
-			<!-- 工具卡片（仅开发环境显示，build 发布后不展示） -->
-			<div class="card-grid" v-show="isDev">
+			<!-- 每日通勤（独立卡片，新窗口打开） -->
+			<div class="card-grid">
+				<div class="demo-card commute" @click="openDaily">
+					<div class="card-icon" :style="{ background: 'linear-gradient(135deg, #42b983, #f5c542)' }">
+						<span class="icon-emoji">⏰</span>
+					</div>
+					<div class="card-body">
+						<div class="card-title">每日通勤</div>
+						<div class="card-desc">每日上下班通勤用时实时查看，自动切换面板，拥堵一目了然</div>
+						<div class="card-tags">
+							<span class="card-tag">通勤</span>
+							<span class="card-tag">实时路况</span>
+						</div>
+					</div>
+					<div class="card-arrow">↗</div>
+				</div>
+			</div>
+
+			<!-- 工具卡片（暂时永久隐藏，仅保留代码不删除，后续可能继续用） -->
+			<div class="card-grid" v-show="false">
 				<div class="demo-card tool" v-for="(item, index) in toolDemos" :key="'tool' + index"
 					@click="goRoute(item.path)">
 					<div class="card-icon" :style="{ background: item.bg }">
@@ -162,6 +180,11 @@ export default {
 	methods: {
 		goRoute(path) {
 			this.$router.push(path);
+		},
+		// 每日通勤：新窗口打开（生产环境访问 map.fx67ll.com/daily）
+		openDaily() {
+			var url = window.location.origin + '/daily';
+			window.open(url, '_blank');
 		},
 		linktoFx67ll() {
 			console.log(
