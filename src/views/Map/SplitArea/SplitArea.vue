@@ -997,4 +997,49 @@ export default {
 		transform: translateY(0);
 	}
 }
+
+@media screen and (max-width: 960px) {
+
+	// 移动端：面包屑宽度自适应内容、避开返回按钮，模式开关左下角，信息卡右下角
+	.crumb-box {
+		top: 12px;
+		left: 12px;
+		right: auto; // 宽度自适应内容，不占满屏
+		max-width: calc(~'100% - 90px'); // 给右上返回按钮留空间，避免被盖住
+		padding: 8px 12px;
+
+		.crumb-list {
+			max-width: none;
+
+			.crumb-item .crumb-name {
+				font-size: 12px;
+			}
+		}
+	}
+
+	.mode-box {
+		top: auto;
+		bottom: 12px;
+		left: 12px;
+		right: auto; // 宽度自适应内容，不占满屏，与 web 端一致
+		max-width: none;
+		padding: 8px 10px;
+
+		.mode-switch .mode-option {
+			padding: 6px 10px;
+			font-size: 13px;
+		}
+	}
+
+	.info-card {
+		bottom: 12px;
+		right: 12px;
+		width: 150px;
+		padding: 10px 12px;
+
+		.info-name {
+			font-size: 14px;
+		}
+	}
+}
 </style>

@@ -440,12 +440,44 @@ export default {
 }
 
 @media screen and (max-width: 960px) {
+	// 移动端：隐藏统计面板，hub 切换器改为横向滚动条
 	.stat-box {
 		display: none;
 	}
-
+	.top-box {
+		top: 12px;
+		left: 12px;
+		padding: 8px 12px;
+		.title-main {
+			font-size: 14px;
+		}
+		.title-sub {
+			font-size: 11px;
+		}
+	}
 	.hub-box {
-		max-width: 240px;
+		top: auto;
+		bottom: 12px;
+		left: 12px;
+		right: 12px;
+		max-width: none;
+		padding: 8px 10px;
+
+		.hub-label {
+			margin-bottom: 6px;
+		}
+		.hub-list {
+			max-width: none;
+			flex-wrap: nowrap;
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+			padding-bottom: 4px;
+		}
+		.hub-item {
+			flex-shrink: 0;
+			padding: 6px 12px;
+			font-size: 13px;
+		}
 	}
 }
 </style>

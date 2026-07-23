@@ -88,6 +88,9 @@ export default {
 	},
 	beforeDestroy() {
 		this.stopPlay();
+		if (this._onResize) {
+			window.removeEventListener('resize', this._onResize);
+		}
 		if (this.map) {
 			this.map.destroy();
 			this.map = null;
@@ -119,6 +122,11 @@ export default {
 				// 地图底图加载完成后渲染热力，避免图层未就绪导致不显示
 				self.map.on('complete', function () {
 					self.updateHeat();
+					// 移动端首次 complete 后容器尺寸可能刚稳定，延迟再渲染一次确保热力层显示
+					setTimeout(function () {
+						if (self.map) self.map.setFitView();
+						self.updateHeat();
+					}, 300);
 				});
 				// 兜底：complete 未触发时也尝试渲染
 				setTimeout(function () {
@@ -126,6 +134,19 @@ export default {
 						self.updateHeat();
 					}
 				}, 800);
+				// 移动端二次兜底（地图初始化较慢时）
+				setTimeout(function () {
+					if (self.heatMap) {
+						self.updateHeat();
+					}
+				}, 1500);
+
+				// 窗口尺寸变化（移动端地址栏伸缩、横竖屏）时重绘热力
+				window.addEventListener('resize', self._onResize = function () {
+					if (self.heatMap) {
+						self.updateHeat();
+					}
+				});
 			}).catch(function (err) {
 				console.error('HeatMap 加载失败:', err);
 			});
@@ -437,12 +458,59 @@ export default {
 }
 
 @media screen and (max-width: 960px) {
+
+	// 移动端：隐藏次要面板，简化为仅时间轴
 	.opacity-box {
 		display: none;
 	}
 
+	.legend-box {
+		display: none;
+	}
+
+	.title-box {
+		top: 12px;
+		left: 12px;
+		right: auto; // 宽度自适应内容，不占满屏，避开右上返回按钮
+		max-width: calc(~'100% - 90px'); // 给返回按钮留空间
+		padding: 8px 12px;
+
+		.title-main {
+			font-size: 14px;
+		}
+
+		.title-sub {
+			font-size: 11px;
+		}
+	}
+
 	.time-box {
-		width: 90%;
+		width: calc(~'100% - 24px');
+		left: 12px;
+		right: 12px;
+		transform: none;
+		bottom: 12px;
+		padding: 10px 14px;
+		flex-wrap: wrap;
+		gap: 8px;
+
+		.time-display {
+			font-size: 22px;
+			min-width: 70px;
+		}
+
+		.time-slider-wrap {
+			margin: 0;
+			flex: 1 1 100%;
+			order: 3;
+		}
+
+		.time-controls {
+			.ctrl-btn {
+				padding: 6px 10px;
+				font-size: 12px;
+			}
+		}
 	}
 }
 </style>

@@ -650,12 +650,56 @@ function GlowWall3D_buildAlerts(districtName, idx) {
 }
 
 @media screen and (max-width: 960px) {
+
+	// 移动端：隐藏告警列表，city 切换器移到底部横向滚动
 	.alert-box {
 		display: none;
 	}
 
+	.top-box {
+		top: 12px;
+		left: 12px;
+		padding: 8px 12px;
+
+		.title-main {
+			font-size: 14px;
+		}
+
+		.title-sub {
+			font-size: 11px;
+		}
+	}
+
 	.city-box {
-		max-width: 240px;
+		top: auto;
+		bottom: 12px; // 区域切换放底部，参考飞线
+		left: 12px;
+		right: 12px;
+		max-width: none;
+		padding: 8px 10px;
+
+		.city-label {
+			margin-bottom: 6px;
+		}
+
+		.city-list {
+			max-width: none;
+			flex-wrap: nowrap;
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+			padding-bottom: 4px;
+		}
+
+		.city-item {
+			flex-shrink: 0;
+			padding: 6px 12px;
+			font-size: 13px;
+		}
+	}
+
+	// 移动端隐藏扫描按钮，简化界面（雷达仍自动旋转）
+	.scan-box {
+		display: none;
 	}
 }
 </style>

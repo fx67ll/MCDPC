@@ -8,8 +8,13 @@
 
 <template>
 	<div class="mapcanvas">
+		<!-- 移动端面板收起时的触发按钮 -->
+		<div class="panel-toggle" @click="panelOpen = !panelOpen">
+			<span>{{ panelOpen ? '✕' : '✏️' }}</span>
+		</div>
+
 		<!-- 左侧工具面板 -->
-		<div class="panel">
+		<div class="panel" :class="{ 'panel-collapsed': !panelOpen }">
 			<div class="panel-title">
 				<span class="panel-title-icon">✏️</span>
 				<span class="panel-title-text">绘图工具</span>
@@ -20,13 +25,16 @@
 			<div class="panel-section">
 				<div class="section-label">绘制模式</div>
 				<div class="mode-grid">
-					<div class="mode-item" :class="{ active: drawMode === 'polygon' && isDrawing }" @click="setMode('polygon')">
+					<div class="mode-item" :class="{ active: drawMode === 'polygon' && isDrawing }"
+						@click="setMode('polygon')">
 						<span class="mode-icon">◢</span><span>多边形</span>
 					</div>
-					<div class="mode-item" :class="{ active: drawMode === 'freedraw' && isDrawing }" @click="setMode('freedraw')">
+					<div class="mode-item" :class="{ active: drawMode === 'freedraw' && isDrawing }"
+						@click="setMode('freedraw')">
 						<span class="mode-icon">〰</span><span>手绘</span>
 					</div>
-					<div class="mode-item" :class="{ active: drawMode === 'measure' && isDrawing }" @click="setMode('measure')">
+					<div class="mode-item" :class="{ active: drawMode === 'measure' && isDrawing }"
+						@click="setMode('measure')">
 						<span class="mode-icon">↔</span><span>测距测面</span>
 					</div>
 				</div>
@@ -38,7 +46,8 @@
 				<div class="section-label">样式</div>
 				<div class="style-row">
 					<span class="style-key">线宽</span>
-					<input class="range" type="range" min="1" max="20" step="1" v-model.number="style.width" @input="render" />
+					<input class="range" type="range" min="1" max="20" step="1" v-model.number="style.width"
+						@input="render" />
 					<span class="style-val">{{ style.width }}px</span>
 				</div>
 				<div class="style-row">
@@ -53,7 +62,8 @@
 				</div>
 				<div class="style-row">
 					<span class="style-key">透明度</span>
-					<input class="range" type="range" min="0" max="1" step="0.1" v-model.number="style.opacity" @input="render" />
+					<input class="range" type="range" min="0" max="1" step="0.1" v-model.number="style.opacity"
+						@input="render" />
 					<span class="style-val">{{ style.opacity }}</span>
 				</div>
 				<div class="style-row">
@@ -135,6 +145,7 @@ export default {
 	name: 'MapCanvas',
 	data() {
 		return {
+			panelOpen: true, // 工具面板展开状态（移动端默认收起）
 			AMap: null,
 			map: null,
 			Canvas: null,
@@ -207,6 +218,8 @@ export default {
 		}
 	},
 	mounted() {
+		// 移动端默认收起面板
+		this.panelOpen = window.innerWidth > 960;
 		this.mapInit();
 	},
 	beforeDestroy() {
@@ -653,6 +666,7 @@ export default {
 	&::-webkit-scrollbar {
 		width: 5px;
 	}
+
 	&::-webkit-scrollbar-thumb {
 		background: rgba(66, 185, 131, 0.4);
 		border-radius: 3px;
@@ -669,11 +683,13 @@ export default {
 		.panel-title-icon {
 			font-size: 18px;
 		}
+
 		.panel-title-text {
 			font-size: 15px;
 			font-weight: bold;
 			color: @green;
 		}
+
 		.status-badge {
 			margin-left: auto;
 			font-size: 10px;
@@ -682,15 +698,18 @@ export default {
 			font-weight: bold;
 			white-space: nowrap;
 		}
+
 		.status-idle {
 			background: rgba(186, 186, 186, 0.2);
 			color: @grey;
 		}
+
 		.status-drawing {
 			background: rgba(66, 185, 131, 0.2);
 			color: @green;
 			animation: status-pulse 1.4s infinite;
 		}
+
 		.status-paused {
 			background: rgba(239, 142, 129, 0.2);
 			color: @red;
@@ -698,10 +717,12 @@ export default {
 	}
 
 	@keyframes status-pulse {
+
 		0%,
 		100% {
 			opacity: 1;
 		}
+
 		50% {
 			opacity: 0.5;
 		}
@@ -730,6 +751,7 @@ export default {
 			grid-template-columns: 1fr 1fr 1fr;
 			gap: 6px;
 		}
+
 		.mode-item {
 			display: flex;
 			flex-direction: column;
@@ -747,18 +769,22 @@ export default {
 				margin-bottom: 3px;
 				color: @green;
 			}
+
 			&:hover {
 				background: rgba(66, 185, 131, 0.1);
 			}
+
 			&.active {
 				background: @green;
 				color: #ffffff;
 				border-color: @green;
+
 				.mode-icon {
 					color: #ffffff;
 				}
 			}
 		}
+
 		.mode-tip {
 			margin-top: 6px;
 			font-size: 11px;
@@ -779,6 +805,7 @@ export default {
 				width: 46px;
 				color: @grey;
 			}
+
 			.range {
 				flex: 1;
 				margin: 0 6px;
@@ -789,6 +816,7 @@ export default {
 				border-radius: 2px;
 				outline: none;
 			}
+
 			.range::-webkit-slider-thumb {
 				-webkit-appearance: none;
 				width: 12px;
@@ -797,6 +825,7 @@ export default {
 				background: @green;
 				cursor: pointer;
 			}
+
 			.color {
 				width: 28px;
 				height: 22px;
@@ -806,6 +835,7 @@ export default {
 				background: none;
 				cursor: pointer;
 			}
+
 			.select {
 				flex: 1;
 				height: 24px;
@@ -816,6 +846,7 @@ export default {
 				outline: none;
 				padding: 0 4px;
 			}
+
 			.style-val {
 				width: 60px;
 				text-align: right;
@@ -830,6 +861,7 @@ export default {
 			gap: 6px;
 			margin-bottom: 6px;
 		}
+
 		.op-btn {
 			display: flex;
 			align-items: center;
@@ -844,14 +876,17 @@ export default {
 			transition: all 0.2s ease;
 			white-space: nowrap;
 		}
+
 		.op-btn:hover {
 			background: @green;
 			color: #ffffff;
 		}
+
 		.op-btn-ghost {
 			color: @grey;
 			border-color: rgba(186, 186, 186, 0.4);
 		}
+
 		.op-btn-ghost:hover {
 			background: @grey;
 			color: #ffffff;
@@ -861,12 +896,14 @@ export default {
 			max-height: 140px;
 			overflow-y: auto;
 		}
+
 		.shape-empty {
 			font-size: 11px;
 			color: @grey;
 			text-align: center;
 			padding: 12px 0;
 		}
+
 		.shape-item {
 			display: flex;
 			align-items: center;
@@ -881,6 +918,7 @@ export default {
 				border-radius: 50%;
 				flex-shrink: 0;
 			}
+
 			.shape-name {
 				flex: 1;
 				color: #2c3e50;
@@ -889,15 +927,18 @@ export default {
 				white-space: nowrap;
 				text-overflow: ellipsis;
 			}
+
 			.shape-name:hover {
 				color: @green;
 			}
+
 			.shape-toggle,
 			.shape-del {
 				cursor: pointer;
 				font-size: 12px;
 				color: @grey;
 			}
+
 			.shape-del:hover {
 				color: @red;
 			}
@@ -907,6 +948,7 @@ export default {
 			font-size: 12px;
 			color: @grey;
 			margin-bottom: 4px;
+
 			b {
 				color: @green;
 			}
@@ -936,12 +978,14 @@ export default {
 		height: 8px;
 		border-radius: 50%;
 	}
+
 	.hint-text {
 		font-size: 12px;
 		font-weight: bold;
 		color: #2c3e50;
 		white-space: nowrap;
 	}
+
 	&.hint-drawing {
 		.hint-dot {
 			background: @green;
@@ -949,6 +993,7 @@ export default {
 			box-shadow: 0 0 6px @green;
 		}
 	}
+
 	&.hint-paused {
 		.hint-dot {
 			background: @red;
@@ -981,22 +1026,27 @@ export default {
 		font-size: 12px;
 		font-weight: bold;
 	}
+
 	.toast-text {
 		font-size: 13px;
 		font-weight: bold;
 		color: #ffffff;
 	}
+
 	&.toast-success {
 		background: rgba(66, 185, 131, 0.92);
 		border: 1px solid rgba(66, 185, 131, 0.6);
+
 		.toast-icon {
 			background: #ffffff;
 			color: @green;
 		}
 	}
+
 	&.toast-error {
 		background: rgba(239, 142, 129, 0.92);
 		border: 1px solid rgba(239, 142, 129, 0.6);
+
 		.toast-icon {
 			background: #ffffff;
 			color: @red;
@@ -1008,16 +1058,58 @@ export default {
 .toast-fade-leave-active {
 	transition: all 0.3s ease;
 }
+
 .toast-fade-enter,
 .toast-fade-leave-to {
 	opacity: 0;
 	transform: translate(-50%, -8px);
 }
 
+/* 桌面端隐藏面板触发按钮 */
+.panel-toggle {
+	display: none;
+}
+
 @media screen and (max-width: 960px) {
+
+	// 移动端：面板可收起，触发按钮显示
+	.panel-toggle {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		position: absolute;
+		top: 12px;
+		left: 12px;
+		z-index: 1001;
+		width: 40px;
+		height: 40px;
+		border-radius: 10px;
+		background: rgba(255, 255, 255, 0.9);
+		backdrop-filter: blur(8px);
+		border: 1px solid rgba(66, 185, 131, 0.4);
+		font-size: 18px;
+		cursor: pointer;
+		box-shadow: 0 4px 14px rgba(66, 185, 131, 0.2);
+	}
+
 	.panel {
-		width: 200px;
-		padding: 10px;
+		top: 60px;
+		left: 12px;
+		right: 12px;
+		width: auto;
+		max-width: 320px;
+		max-height: calc(~'100% - 72px');
+
+		// 收起状态：完全隐藏（保留可访问性）
+		&.panel-collapsed {
+			display: none;
+		}
+	}
+
+	// 移动端 draw-hint 下移避让面板触发按钮
+	.draw-hint {
+		top: 12px;
+		right: 12px;
 	}
 }
 </style>
