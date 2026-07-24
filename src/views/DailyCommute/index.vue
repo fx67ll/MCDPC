@@ -16,7 +16,8 @@
 						<div class="web-header-top">
 							<div class="web-header-left">
 								<div class="web-title"><span class="web-title-icon">🚗</span> 每日通勤</div>
-								<div class="web-now">{{ nowText }}</div>
+								<div class="web-now" @click="manualLocate" title="点击获取当前位置">{{ nowText }}{{ locateStatus
+									? ' · ' + locateStatus : '' }}</div>
 							</div>
 							<!-- 自动刷新指示胶囊（点击打开设置） -->
 							<div class="web-auto-pill" :class="{ on: refreshInterval > 0 }"
@@ -159,7 +160,8 @@
 				<div class="m-top-bar">
 					<!-- 左侧：占位保持 tab 居中 -->
 					<div class="m-top-left">
-						<span class="m-now">{{ nowText }}</span>
+						<span class="m-now" @click="manualLocate" title="点击获取当前位置">{{ nowText }}{{ locateStatus ? ' · '
+							+ locateStatus : '' }}</span>
 					</div>
 					<!-- 中间：tab（严格居中） -->
 					<div class="m-tabs-mini">
@@ -332,6 +334,8 @@ export default {
 			_tabByLocationDone: false, // 定位判断 tab 是否已执行（仅首次定位成功时切换）
 			_initRefreshed: false, // 初始化是否已触发首次刷新
 			tabSource: 'time', // tab 来源：time 时间判断 / location 定位判断
+			_locating: false, // 是否正在定位
+			locateStatus: '', // 定位状态提示
 			refreshConfigOpen: false, // web 端刷新设置弹层
 			mRefreshConfigOpen: false, // 移动端刷新设置弹层
 			// 天气
@@ -917,8 +921,58 @@ export default {
 			if (d1 > d2) return 'back';
 			return null; // 相等，走时间逻辑
 		},
-		// 获取当前定位（不自动缩放/平移地图，仅标注）
+		// 手动触发定位（点击时间触发）
+		manualLocate() {
+			var self = this;
+			if (self._locating) return;
+			self._locating = true;
+			self.locateStatus = '正在获取定位...';
+			// 优先使用浏览器原生 geolocation（线上 HTTPS 环境必需，iOS Safari 兼容性好）
+			if (navigator.geolocation) {
+				navigator.geolocation.getCurrentPosition(
+					function (position) {
+						self._locating = false;
+						self.onLocateSuccess([position.coords.longitude, position.coords.latitude]);
+					},
+					function (err) {
+						self._locating = false;
+						var msg = err.message || '未知错误';
+						if (err.code === 1) msg = '用户拒绝了定位权限';
+						else if (err.code === 2) msg = '位置不可用';
+						else if (err.code === 3) msg = '定位超时';
+						self.locateStatus = '定位失败：' + msg;
+						console.warn('[DailyCommute] 浏览器定位失败:', err.code, msg);
+						// 降级到高德 Geolocation
+						self.locateByAMap();
+					},
+					{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+				);
+			} else {
+				self._locating = false;
+				self.locateByAMap();
+			}
+		},
+		// 自动获取当前定位（页面初始化时调用）
+		// 优先使用浏览器原生 geolocation（线上 HTTPS 环境必需），失败再降级高德 Geolocation
 		locateCurrent() {
+			var self = this;
+			if (navigator.geolocation) {
+				navigator.geolocation.getCurrentPosition(
+					function (position) {
+						self.onLocateSuccess([position.coords.longitude, position.coords.latitude]);
+					},
+					function (err) {
+						console.warn('[DailyCommute] 自动定位失败，降级高德:', err.code, err.message);
+						self.locateByAMap();
+					},
+					{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+				);
+			} else {
+				self.locateByAMap();
+			}
+		},
+		// 高德 Geolocation 定位（降级方案）
+		locateByAMap() {
 			var self = this;
 			try {
 				var geolocation = new self.AMap.Geolocation({
@@ -933,31 +987,32 @@ export default {
 				});
 				geolocation.getCurrentPosition(function (status, result) {
 					if (status === 'complete' && result && result.position) {
-						self.currentLnglat = [result.position.lng, result.position.lat];
-						// 仅绘制定位标注，不改变地图视野
-						self.drawCurrentMarker();
-						// 仅在初始化未完成时，才用定位判断 tab
-						// 无论 _locateFailed 是否为 true，只要 _initRefreshed 为 false 就说明超时兜底还没执行
-						// 定位回调先于超时到达 → 用定位判断
-						// 超时先到达 → _initRefreshed=true → 定位回调跳过
-						if (!self._initRefreshed) {
-							self._tabByLocationDone = true;
-							var newTab = self.autoTabByLocation(self.currentLnglat);
-							if (newTab) {
-								self.tab = newTab;
-								self.theme = newTab;
-								self.tabSource = 'location';
-							} else {
-								self.tab = autoTabByHour(new Date());
-								self.theme = self.tab;
-							}
-							self._initRefreshed = true;
-							self.refreshAll();
-						}
+						self.onLocateSuccess([result.position.lng, result.position.lat]);
 					}
 				});
 			} catch (e) {
 				// 定位失败忽略，不影响主流程
+			}
+		},
+		// 定位成功统一处理
+		onLocateSuccess(lnglat) {
+			var self = this;
+			self.currentLnglat = lnglat;
+			self.drawCurrentMarker();
+			self.locateStatus = '定位成功';
+			if (!self._initRefreshed) {
+				self._tabByLocationDone = true;
+				var newTab = self.autoTabByLocation(self.currentLnglat);
+				if (newTab) {
+					self.tab = newTab;
+					self.theme = newTab;
+					self.tabSource = 'location';
+				} else {
+					self.tab = autoTabByHour(new Date());
+					self.theme = self.tab;
+				}
+				self._initRefreshed = true;
+				self.refreshAll();
 			}
 		},
 		// 恢复到整体路线视图（不缩放到定位点）
@@ -1170,30 +1225,8 @@ export default {
 				+ '&from=' + s[0] + ',' + s[1] + ',' + encodeURIComponent(r.startName)
 				+ '&via=' + viaStr
 				+ '&mode=car&coordinate=gcj02&callnative=1';
-			// 移动端：优先尝试高德 App scheme，失败再走网页版
-			if (this.isMobile) {
-				var scheme = 'amapuri://route/plan/?sid=&slat=' + s[1] + '&slon=' + s[0] + '&sname=' + encodeURIComponent(r.startName)
-					+ '&did=&dlat=' + e[1] + '&dlon=' + e[0] + '&dname=' + encodeURIComponent(r.endName)
-					+ '&dev=0&t=0';
-				// 尝试唤起 App，1.5 秒后如果还在当前页则走网页版
-				var loaded = false;
-				var iframe = document.createElement('iframe');
-				iframe.style.display = 'none';
-				iframe.src = scheme;
-				document.body.appendChild(iframe);
-				setTimeout(function () {
-					if (!loaded) {
-						document.body.removeChild(iframe);
-						window.location.href = url;
-					}
-				}, 1500);
-				// 如果 App 唤起成功页面会隐藏，visibilitychange 检测
-				document.addEventListener('visibilitychange', function () {
-					if (document.hidden) loaded = true;
-				}, { once: true });
-			} else {
-				window.open(url, '_blank');
-			}
+			// web 端和移动端统一用网页版导航
+			window.open(url, '_blank');
 		},
 		cancelNav() {
 			this.navConfirmShow = false;
@@ -1498,6 +1531,12 @@ export default {
 			margin-top: 2px;
 			font-family: 'Courier New', monospace;
 			font-weight: bold;
+			cursor: pointer;
+			transition: opacity 0.2s ease;
+
+			&:hover {
+				opacity: 0.7;
+			}
 		}
 	}
 
@@ -1839,6 +1878,12 @@ export default {
 				font-weight: bold;
 				color: #2c3e50;
 				font-family: 'Courier New', monospace;
+				cursor: pointer;
+				transition: opacity 0.2s ease;
+
+				&:active {
+					opacity: 0.7;
+				}
 			}
 
 			// 中间 tab
