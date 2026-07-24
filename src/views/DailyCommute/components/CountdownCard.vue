@@ -120,24 +120,29 @@ export default {
 		display: flex;
 		align-items: baseline;
 		gap: 10px;
+
 		.cd-label {
 			font-size: 13px;
 			opacity: 0.9;
 		}
+
 		.cd-time {
 			font-size: 28px;
 			font-weight: bold;
 			font-family: 'Courier New', monospace;
+
 			&.urgent {
 				color: #fff3cd;
 				animation: pulse 1s infinite;
 			}
 		}
 	}
+
 	.cd-sub {
 		margin-top: 6px;
 		font-size: 12px;
 		opacity: 0.95;
+
 		&.late {
 			color: #fff;
 			font-weight: bold;
@@ -149,13 +154,22 @@ export default {
 		background: linear-gradient(135deg, #ef6b5a, #f08a7a);
 		box-shadow: 0 4px 14px rgba(239, 107, 90, 0.35);
 		animation: pulse 1.2s infinite;
+
 		.cd-time {
 			color: #fff;
 		}
 	}
 }
+
 @keyframes pulse {
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0.7; }
+
+	0%,
+	100% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0.7;
+	}
 }
 </style>

@@ -1,7 +1,7 @@
 <!-- 分段用时：动态渲染所有区段的实际耗时（支持任意数量途经点） -->
 <template>
 	<div class="seg-dur" v-if="data && data.segDurations && data.segDurations.length">
-		<div class="sd-title"><span class="title-icon">⏱</span> 分段用时</div>
+		<div class="sd-title" v-if="showTitle"><span class="title-icon">⏱</span> 分段用时</div>
 		<div class="sd-row" v-for="(seg, i) in data.segDurations" :key="i">
 			<div class="sd-leg">
 				<span class="sd-dot" :class="dotClass(i)"></span>
@@ -21,7 +21,8 @@
 export default {
 	name: 'SegmentDuration',
 	props: {
-		data: { type: Object, default: null }
+		data: { type: Object, default: null },
+		showTitle: { type: Boolean, default: true }
 	},
 	methods: {
 		// 根据索引返回圆点颜色类（起点绿、途经黄、终点红）
@@ -52,35 +53,52 @@ export default {
 		display: flex;
 		align-items: center;
 		gap: 6px;
+
 		.title-icon {
-			font-size: 14px;
+			font-size: 16px;
 			line-height: 1;
 			flex-shrink: 0;
+			position: relative;
+			top: 1px;
 		}
 	}
+
 	.sd-row {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		padding: 8px 0;
+
 		&:not(:last-child) {
 			border-bottom: 1px dashed rgba(0, 0, 0, 0.06);
 		}
+
 		.sd-leg {
 			display: inline-flex;
 			align-items: center;
 			gap: 5px;
 			min-width: 0;
 		}
+
 		.sd-dot {
 			width: 9px;
 			height: 9px;
 			border-radius: 50%;
 			flex-shrink: 0;
-			&.start { background: #42b983; }
-			&.via { background: #f5c542; }
-			&.end { background: #ef6b5a; }
+
+			&.start {
+				background: #42b983;
+			}
+
+			&.via {
+				background: #f5c542;
+			}
+
+			&.end {
+				background: #ef6b5a;
+			}
 		}
+
 		.sd-from {
 			font-size: 12px;
 			color: #2c3e50;
@@ -88,11 +106,13 @@ export default {
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
+
 		.sd-arrow {
 			font-size: 12px;
 			color: #bababa;
 			flex-shrink: 0;
 		}
+
 		.sd-dur {
 			margin-left: auto;
 			font-size: 14px;

@@ -1,7 +1,7 @@
 <!-- 路线对比：两条路线耗时并排，推荐更快的那条 -->
 <template>
 	<div class="route-compare" v-if="routes.length">
-		<div class="rc-title"><span class="title-icon">🔀</span> 路线对比</div>
+		<div class="rc-title" v-if="showTitle"><span class="title-icon">🔀</span> 路线对比</div>
 		<div class="rc-list">
 			<div class="rc-item" v-for="(r, i) in routes" :key="i"
 				:class="{ active: current === i, best: bestIdx === i, loading: !r }" @click="r && $emit('select', i)">
@@ -33,7 +33,8 @@ export default {
 	name: 'RouteCompare',
 	props: {
 		routes: { type: Array, default: () => [] },
-		current: { type: Number, default: 0 }
+		current: { type: Number, default: 0 },
+		showTitle: { type: Boolean, default: true }
 	},
 	computed: {
 		bestIdx() {

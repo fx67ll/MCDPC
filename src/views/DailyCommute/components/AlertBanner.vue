@@ -29,12 +29,21 @@ export default {
 	align-items: center;
 	gap: 8px;
 	animation: pulse 1.5s infinite;
+
 	.alert-banner-icon {
 		font-size: 16px;
 	}
 }
+
 @keyframes pulse {
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0.6; }
+
+	0%,
+	100% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0.6;
+	}
 }
 </style>

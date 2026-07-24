@@ -19,9 +19,11 @@
 								<div class="web-now">{{ nowText }}</div>
 							</div>
 							<!-- 自动刷新指示胶囊（点击打开设置） -->
-							<div class="web-auto-pill" :class="{ on: refreshInterval > 0 }" @click="refreshConfigOpen = !refreshConfigOpen" title="定时刷新设置">
+							<div class="web-auto-pill" :class="{ on: refreshInterval > 0 }"
+								@click="refreshConfigOpen = !refreshConfigOpen" title="定时刷新设置">
 								<span class="pill-dot" :class="{ spinning: isLoading }"></span>
-								<span class="pill-text" v-if="refreshInterval > 0">{{ formatInterval(refreshInterval) }}</span>
+								<span class="pill-text" v-if="refreshInterval > 0">{{ formatInterval(refreshInterval)
+								}}</span>
 								<span class="pill-text" v-else>手动</span>
 							</div>
 							<!-- 定时刷新设置弹层 -->
@@ -29,7 +31,8 @@
 								<div class="cfg-title">⏱ 定时刷新设置</div>
 								<div class="cfg-row">
 									<span class="cfg-label">刷新间隔</span>
-									<select class="cfg-select" :value="refreshInterval" @change="onIntervalChange(Number($event.target.value))">
+									<select class="cfg-select" :value="refreshInterval"
+										@change="onIntervalChange(Number($event.target.value))">
 										<option :value="10">10 秒</option>
 										<option :value="30">30 秒</option>
 										<option :value="60">1 分钟</option>
@@ -49,45 +52,71 @@
 							</div>
 						</div>
 						<div class="web-header-bottom">
-							<div class="web-refresh-btn" :class="{ loading: isLoading }" @click="refreshAll" title="手动刷新">
+							<div class="web-refresh-btn" :class="{ loading: isLoading }" @click="refreshAll"
+								title="手动刷新">
 								<span class="web-refresh-icon">↻</span>
 								<span class="web-refresh-text">刷新</span>
 							</div>
 							<div class="web-last-time" v-if="lastRefreshTime">最后刷新 {{ lastRefreshTime }}</div>
 							<div class="web-collapse-btn" @click="togglePanel" title="收起面板">
 								<span>收起</span>
-								<svg class="collapse-arrow" viewBox="0 0 24 24" width="14" height="14"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+								<svg class="collapse-arrow" viewBox="0 0 24 24" width="14" height="14">
+									<path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.5"
+										stroke-linecap="round" stroke-linejoin="round" />
+								</svg>
 							</div>
 						</div>
 					</div>
 					<div class="web-side-scroll">
 						<commute-tabs :value="tab" :tip="tabTip" @change="switchTab"></commute-tabs>
-						<countdown-card v-if="tab === 'go'" :now="now"
-							:duration="currentRouteData ? currentRouteData.duration : 0"
-							:best-duration="bestDuration"></countdown-card>
-						<route-compare :routes="routeResults" :current="currentRoute" @select="switchRoute"></route-compare>
-						<alert-banner :text="closedInfo"></alert-banner>
-						<route-summary :data="currentRouteData"></route-summary>
-						<segment-duration :data="currentRouteData"></segment-duration>
-						<time-line :data="currentRouteData" :now="now" :show-remain="tab === 'go'"></time-line>
-						<div class="d-error" v-if="errorMsg">{{ errorMsg }}</div>
+						<!-- 加载占位 -->
+						<div class="loading-placeholder" v-if="!tab">
+							<div class="lp-spinner"></div>
+							<div class="lp-text">正在获取定位与路线信息...</div>
+						</div>
+						<template v-else>
+							<countdown-card v-if="tab === 'go'" :now="now"
+								:duration="currentRouteData ? currentRouteData.duration : 0"
+								:best-duration="bestDuration"></countdown-card>
+							<route-compare :routes="routeResults" :current="currentRoute"
+								@select="switchRoute"></route-compare>
+							<alert-banner :text="closedInfo"></alert-banner>
+							<route-summary :data="currentRouteData"></route-summary>
+							<segment-duration :data="currentRouteData"></segment-duration>
+							<time-line :data="currentRouteData" :now="now" :show-remain="tab === 'go'"></time-line>
+							<div class="d-error" v-if="errorMsg">{{ errorMsg }}</div>
+						</template>
 					</div>
 				</div>
 				<!-- 收起状态：贴边的竖向小胶囊（展开 + 刷新合一） -->
 				<div class="web-edge-bar" v-show="panelCollapsed">
 					<div class="edge-item" @click="refreshAll" title="手动刷新">
-						<svg viewBox="0 0 24 24" width="18" height="18"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{ spinning: isLoading }"/></svg>
+						<svg viewBox="0 0 24 24" width="16" height="16">
+							<path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" fill="none" stroke="currentColor"
+								stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+								:class="{ spinning: isLoading }" />
+						</svg>
 					</div>
 					<div class="edge-divider"></div>
-					<div class="edge-item" :class="{ active: weatherFloatOpen }" @click="weatherFloatOpen = !weatherFloatOpen" title="天气">
-						<svg viewBox="0 0 24 24" width="18" height="18"><path d="M17 18a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1A4 4 0 0 0 6 18h11z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					<div class="edge-item" :class="{ active: weatherFloatOpen }"
+						@click="weatherFloatOpen = !weatherFloatOpen" title="天气">
+						<svg viewBox="0 0 24 24" width="18" height="18">
+							<path d="M17 18a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1A4 4 0 0 0 6 18h11z" fill="none"
+								stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+						</svg>
 					</div>
 					<div class="edge-item" @click="openNav" title="一键导航">
-						<svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						<svg viewBox="0 0 24 24" width="16" height="16">
+							<path d="M3 11l19-9-9 19-2-8-8-2z" fill="none" stroke="currentColor" stroke-width="2"
+								stroke-linecap="round" stroke-linejoin="round" />
+						</svg>
 					</div>
 					<div class="edge-divider"></div>
 					<div class="edge-item" @click="togglePanel" title="展开面板">
-						<svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						<svg viewBox="0 0 24 24" width="18" height="18">
+							<path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.5"
+								stroke-linecap="round" stroke-linejoin="round" />
+						</svg>
 					</div>
 				</div>
 			</aside>
@@ -99,13 +128,12 @@
 					<div class="wwf-main">
 						<span class="wwf-temp">{{ weatherLive.temperature }}°</span>
 						<div class="wwf-info">
-							<div class="wwf-city">{{ weatherLive.city }}</div>
-							<div class="wwf-desc">{{ weatherLive.weather }} · 湿度{{ weatherLive.humidity }}%</div>
+							<div class="wwf-city">{{ weatherLive.city }} · {{ weatherLive.weather }}</div>
+							<div class="wwf-desc">湿度{{ weatherLive.humidity }}% · {{ weatherLive.windDirection }}风{{ weatherLive.windPower }}级</div>
 						</div>
 					</div>
-					<div class="wwf-extra">{{ weatherLive.windDirection }}风 {{ weatherLive.windPower }}级</div>
 					<div class="wwf-forecast" v-if="weatherForecast.length">
-						<div class="wwf-fc" v-for="(f, i) in weatherForecast" :key="i">
+						<div class="wwf-fc" v-for="(f, i) in weatherForecast" :key="i" :style="{ animationDelay: i * 0.06 + 's' }">
 							<span class="wwf-fc-date">{{ f.week }}</span>
 							<span class="wwf-fc-w">{{ f.dayWeather }}</span>
 							<span class="wwf-fc-t">{{ f.nightTemp }}~{{ f.dayTemp }}°</span>
@@ -127,14 +155,34 @@
 			<!-- 顶部浮层：tab + 倒计时 -->
 			<div class="m-top">
 				<div class="m-top-bar">
-					<span class="m-now">{{ nowText }}</span>
+					<!-- 左侧：占位保持 tab 居中 -->
+					<div class="m-top-left">
+						<span class="m-now">{{ nowText }}</span>
+					</div>
+					<!-- 中间：tab（严格居中） -->
 					<div class="m-tabs-mini">
 						<span class="m-tab-mini" :class="{ active: tab === 'go' }" @click="switchTab('go')">上班</span>
 						<span class="m-tab-mini" :class="{ active: tab === 'back' }"
 							@click="switchTab('back')">下班</span>
 					</div>
+					<!-- 右侧：刷新 + 设置（SVG 图标，大小一致） -->
 					<div class="m-top-actions">
-						<span class="m-refresh-mini" :class="{ loading: isLoading }" @click="refreshAll">↻</span>
+						<span class="m-icon-btn" :class="{ loading: isLoading }" @click="refreshAll" title="刷新">
+							<svg viewBox="0 0 24 24" width="20" height="20">
+								<path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" fill="none" stroke="currentColor"
+									stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+							</svg>
+						</span>
+						<span class="m-icon-btn" @click="mRefreshConfigOpen = true" title="定时刷新设置">
+							<svg viewBox="0 0 24 24" width="20" height="20">
+								<path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="none" stroke="currentColor"
+									stroke-width="2" />
+								<path
+									d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+									fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+									stroke-linejoin="round" />
+							</svg>
+						</span>
 					</div>
 				</div>
 				<div class="m-countdown" v-if="tab === 'go'" :class="{ late: countdownLate }">
@@ -148,21 +196,35 @@
 
 			<!-- 底部抽屉：路线信息 -->
 			<div class="m-sheet" :class="{ expanded: sheetExpanded }">
-				<div class="m-sheet-handle" @click="sheetExpanded = !sheetExpanded">
+				<div class="m-sheet-handle" @click="tab && (sheetExpanded = !sheetExpanded)">
 					<span class="handle-bar"></span>
-					<span class="handle-title">{{ currentRouteData ? currentRouteData.name : '路线' }} · {{
-						currentRouteData ? currentRouteData.durationText : '--' }}</span>
-					<span class="handle-set" @click.stop="mRefreshConfigOpen = true" title="定时刷新设置">⚙</span>
+					<div class="handle-info" v-if="currentRouteData">
+						<span class="handle-title">
+							{{ currentRouteData.name }}
+							<span class="handle-sep">·</span>
+							<span class="handle-dur">{{ currentRouteData.durationText }}</span>
+							<span class="handle-sep">·</span>
+							<span class="handle-cong" :class="'cong-' + currentRouteData.congestionCls">{{ currentRouteData.congestionText }}</span>
+						</span>
+					</div>
+					<div class="handle-info" v-else>
+						<span class="handle-title">{{ tab ? '路线规划中...' : '正在获取定位信息...' }}</span>
+					</div>
 				</div>
-				<div class="m-sheet-body">
+				<div class="m-sheet-body" v-if="tab">
 					<route-compare :routes="routeResults" :current="currentRoute" @select="switchRoute"></route-compare>
 					<alert-banner :text="closedInfo"></alert-banner>
 					<route-summary :data="currentRouteData"></route-summary>
 					<segment-duration :data="currentRouteData"></segment-duration>
 					<time-line :data="currentRouteData" :now="now" :show-remain="tab === 'go'"></time-line>
 					<div class="d-error" v-if="errorMsg">{{ errorMsg }}</div>
-					<weather-card :live="weatherLive" :forecast="weatherForecast"></weather-card>
+					<weather-card :live="weatherLive" :forecast="weatherForecast" :last-update="lastRefreshTime ? '天气更新于 ' + lastRefreshTime : ''"></weather-card>
 					<div class="d-foot">数据来源：高德地图实时路径规划 · 仅供参考</div>
+				</div>
+				<!-- tab 未确定时显示加载占位 -->
+				<div class="m-sheet-body loading-placeholder" v-else>
+					<div class="lp-spinner"></div>
+					<div class="lp-text">正在获取定位与路线信息...</div>
 				</div>
 			</div>
 
@@ -172,13 +234,9 @@
 					<div class="m-cfg-sheet" @click.stop>
 						<div class="m-cfg-title">⏱ 定时刷新设置</div>
 						<div class="m-cfg-opts">
-							<div
-								class="m-cfg-opt"
-								v-for="opt in intervalOptions"
-								:key="opt.value"
+							<div class="m-cfg-opt" v-for="opt in intervalOptions" :key="opt.value"
 								:class="{ active: refreshInterval === opt.value }"
-								@click="onIntervalChange(opt.value); mRefreshConfigOpen = false"
-							>{{ opt.label }}</div>
+								@click="onIntervalChange(opt.value); mRefreshConfigOpen = false">{{ opt.label }}</div>
 						</div>
 						<div class="m-cfg-status" v-if="refreshInterval > 0">
 							<span class="cfg-dot active"></span>每 {{ formatInterval(refreshInterval) }} 自动刷新
@@ -199,7 +257,8 @@
 					<div class="nav-modal-icon">🧭</div>
 					<div class="nav-modal-title">即将打开高德导航</div>
 					<div class="nav-modal-desc" v-if="currentRouteData">
-						{{ currentRouteData.startName }} → {{ currentRouteData.viaName }} → {{ currentRouteData.endName }}
+						{{ currentRouteData.startName }} → {{ currentRouteData.viaName }} → {{ currentRouteData.endName
+						}}
 					</div>
 					<div class="nav-modal-tip">导航将在新页签打开，可在高德 App 内发送到车机</div>
 					<div class="nav-modal-btns">
@@ -246,7 +305,7 @@ export default {
 			map: null,
 			driving: null,
 			segDriving: null, // 分段规划用（无 map，只算耗时）
-			tab: 'go',
+			tab: null, // go 上班 / back 下班 / null 未确定（初始化加载中）
 			currentRoute: 0,
 			routeResults: [],
 			isLoading: false,
@@ -266,6 +325,9 @@ export default {
 			// web 端面板收起
 			panelCollapsed: false,
 			weatherFloatOpen: false, // 收起状态下天气浮动卡片是否打开
+			_tabByLocationDone: false, // 定位判断 tab 是否已执行（仅首次定位成功时切换）
+			_initRefreshed: false, // 初始化是否已触发首次刷新
+			tabSource: 'time', // tab 来源：time 时间判断 / location 定位判断
 			refreshConfigOpen: false, // web 端刷新设置弹层
 			mRefreshConfigOpen: false, // 移动端刷新设置弹层
 			// 天气
@@ -279,13 +341,23 @@ export default {
 			return this.tab;
 		},
 		currentRoutes() {
+			if (!this.tab) return [];
 			return this.tab === 'go' ? GO_ROUTES : BACK_ROUTES;
 		},
 		currentRouteData() {
 			return this.routeResults[this.currentRoute] || null;
 		},
 		tabTip() {
+			if (!this.tab) return '正在判断...';
 			var auto = autoTabByHour(this.now);
+			if (this.tabSource === 'location') {
+				// 走定位判断逻辑
+				if (this.tab !== auto) {
+					return '按定位自动选择';
+				}
+				return '按定位自动选择';
+			}
+			// 走时间判断逻辑
 			if (this.tab !== auto) {
 				return '已手动切换';
 			}
@@ -360,7 +432,7 @@ export default {
 	},
 	mounted() {
 		this.isMobile = window.innerWidth <= 960;
-		this.tab = autoTabByHour(new Date());
+		this.tab = null; // 初始未确定，等定位/时间判断后设置
 		this.now = new Date();
 		this.initMap();
 		this.tickTimer = setInterval(() => {
@@ -424,10 +496,24 @@ export default {
 					policy: (AMap.DrivingPolicy && AMap.DrivingPolicy.LEAST_TIME) || 'LEAST_TIME',
 					hideMarkers: true
 				});
-				// 获取当前位置并标注
+				// 获取当前位置并标注（定位成功后由回调触发首次 refreshAll，定位超时则用时间逻辑兜底）
+				self._initRefreshed = false;
+				self._locateFailed = false;
 				self.locateCurrent();
-				self.refreshAll();
-				// 查询南京天气
+				// 定位超时兜底：8 秒后如果定位还没回来，用时间逻辑确定 tab 并刷新
+				// 高德 Geolocation timeout 设为 8 秒，这里与之一致
+				setTimeout(function () {
+					if (!self._initRefreshed) {
+						self._initRefreshed = true;
+						self._locateFailed = true;
+						if (!self.tab) {
+							self.tab = autoTabByHour(new Date());
+							self.theme = self.tab;
+						}
+						self.refreshAll();
+					}
+				}, 8000);
+				// 查询南京天气（独立于路线刷新，走缓存逻辑）
 				self.queryWeather();
 			}).catch(function (err) {
 				self.errorMsg = '地图加载失败：' + (err && err.message ? err.message : err);
@@ -436,7 +522,7 @@ export default {
 		},
 		refreshAll() {
 			var self = this;
-			if (!self.driving) return;
+			if (!self.driving || !self.tab) return;
 			self.isLoading = true;
 			self.errorMsg = '';
 			self.markRefreshTime();
@@ -484,7 +570,7 @@ export default {
 			if (route.via2) wps.push(route.via2.lnglat);
 			return wps;
 		},
-			// 构建关键时间点数组（起点→途经1→途经2→...→终点）
+		// 构建关键时间点数组（起点→途经1→途经2→...→终点）
 		// 每个点包含：名称、抵达时间、距9点剩余、圆点类型
 		buildTimePoints(route, totalDuration) {
 			var self = this;
@@ -742,23 +828,90 @@ export default {
 		queryWeather() {
 			var self = this;
 			if (!self.AMap || !self.AMap.Weather) return;
+			// 缓存逻辑：刷新间隔 = 当前自动刷新时间 + 1h23min
+			// 未超过间隔则使用缓存，不重新查询
+			var cacheKey = 'daily_commute_weather';
+			var cached = null;
+			try {
+				cached = JSON.parse(localStorage.getItem(cacheKey));
+			} catch (e) { }
+			// 计算需要的缓存间隔（毫秒）= 当前刷新间隔秒 + 1h23min(4980秒)
+			var minInterval = (self.refreshInterval + 4980) * 1000;
+			if (cached && cached.timestamp) {
+				var elapsed = Date.now() - cached.timestamp;
+				if (elapsed < minInterval) {
+					// 使用缓存
+					self.weatherLive = cached.live;
+					self.weatherForecast = cached.forecast || [];
+					return;
+				}
+			}
+			// 超过间隔或无缓存，重新查询
 			try {
 				var weather = new self.AMap.Weather();
 				// 实时天气
 				weather.getLive('南京', function (err, data) {
 					if (!err && data) {
 						self.weatherLive = data;
+						// 存缓存
+						try {
+							localStorage.setItem(cacheKey, JSON.stringify({
+								timestamp: Date.now(),
+								live: data,
+								forecast: self.weatherForecast
+							}));
+						} catch (e) { }
 					}
 				});
 				// 4天预报
 				weather.getForecast('南京', function (err, data) {
 					if (!err && data && data.length) {
 						self.weatherForecast = data;
+						// 更新缓存的 forecast
+						try {
+							var existing = JSON.parse(localStorage.getItem(cacheKey) || '{}');
+							existing.forecast = data;
+							if (!existing.timestamp) existing.timestamp = Date.now();
+							localStorage.setItem(cacheKey, JSON.stringify(existing));
+						} catch (e) { }
 					}
 				});
 			} catch (e) {
 				// 天气查询失败不影响主流程
 			}
+		},
+		// 基于定位判断上班/下班 tab
+		// d1 = 定位到上班路线起点（路线一/二起点）的最小距离
+		// d2 = 定位到上班路线途经点/终点的最小距离
+		// d1 < d2 → 上班，d1 > d2 → 下班，相等 → null（走时间逻辑）
+		autoTabByLocation(lnglat) {
+			var self = this;
+			function dist(a, b) {
+				var dx = a[0] - b[0];
+				var dy = a[1] - b[1];
+				return dx * dx + dy * dy;
+			}
+			// d1: 定位到所有上班路线起点的最小距离
+			var d1 = Infinity;
+			GO_ROUTES.forEach(function (r) {
+				var d = dist(lnglat, r.start.lnglat);
+				if (d < d1) d1 = d;
+			});
+			// d2: 定位到所有上班路线途经点+终点的最小距离
+			var d2 = Infinity;
+			GO_ROUTES.forEach(function (r) {
+				var dv = dist(lnglat, r.via.lnglat);
+				if (dv < d2) d2 = dv;
+				var de = dist(lnglat, r.end.lnglat);
+				if (de < d2) d2 = de;
+				if (r.via2) {
+					var dv2 = dist(lnglat, r.via2.lnglat);
+					if (dv2 < d2) d2 = dv2;
+				}
+			});
+			if (d1 < d2) return 'go';
+			if (d1 > d2) return 'back';
+			return null; // 相等，走时间逻辑
 		},
 		// 获取当前定位（不自动缩放/平移地图，仅标注）
 		locateCurrent() {
@@ -777,8 +930,26 @@ export default {
 				geolocation.getCurrentPosition(function (status, result) {
 					if (status === 'complete' && result && result.position) {
 						self.currentLnglat = [result.position.lng, result.position.lat];
-						// 仅绘制定位标注，不改变地图视野（全局视图由 restoreMapView 在查询完成后统一刷新）
+						// 仅绘制定位标注，不改变地图视野
 						self.drawCurrentMarker();
+						// 仅在初始化未完成时，才用定位判断 tab
+						// 无论 _locateFailed 是否为 true，只要 _initRefreshed 为 false 就说明超时兜底还没执行
+						// 定位回调先于超时到达 → 用定位判断
+						// 超时先到达 → _initRefreshed=true → 定位回调跳过
+						if (!self._initRefreshed) {
+							self._tabByLocationDone = true;
+							var newTab = self.autoTabByLocation(self.currentLnglat);
+							if (newTab) {
+								self.tab = newTab;
+								self.theme = newTab;
+								self.tabSource = 'location';
+							} else {
+								self.tab = autoTabByHour(new Date());
+								self.theme = self.tab;
+							}
+							self._initRefreshed = true;
+							self.refreshAll();
+						}
 					}
 				});
 			} catch (e) {
@@ -804,7 +975,7 @@ export default {
 						if (locMarker) self.map.remove([locMarker]);
 						self.map.setFitView(null, true, [pad, pad, pad, pad], maxZoom);
 						if (locMarker) locMarker.setMap(self.map);
-					} catch (e) {}
+					} catch (e) { }
 				}, 100);
 			}
 		},
@@ -958,6 +1129,8 @@ export default {
 		switchTab(tab) {
 			if (this.tab === tab) return;
 			this.tab = tab;
+			this.theme = tab;
+			this.tabSource = 'time'; // 手动切换标记为时间逻辑
 			this.currentRoute = 0;
 			this.refreshAll();
 		},
@@ -988,12 +1161,35 @@ export default {
 				viaParts.push(wps[i][0] + ',' + wps[i][1] + ',' + encodeURIComponent(viaNames[i]));
 			}
 			var viaStr = viaParts.join('|');
-			// 高德网页版导航 URI
+			// 高德网页版导航 URI（callnative=1 会尝试唤起 App）
 			var url = 'https://uri.amap.com/navigation?to=' + e[0] + ',' + e[1] + ',' + encodeURIComponent(r.endName)
 				+ '&from=' + s[0] + ',' + s[1] + ',' + encodeURIComponent(r.startName)
 				+ '&via=' + viaStr
 				+ '&mode=car&coordinate=gcj02&callnative=1';
-			window.open(url, '_blank');
+			// 移动端：优先尝试高德 App scheme，失败再走网页版
+			if (this.isMobile) {
+				var scheme = 'amapuri://route/plan/?sid=&slat=' + s[1] + '&slon=' + s[0] + '&sname=' + encodeURIComponent(r.startName)
+					+ '&did=&dlat=' + e[1] + '&dlon=' + e[0] + '&dname=' + encodeURIComponent(r.endName)
+					+ '&dev=0&t=0';
+				// 尝试唤起 App，1.5 秒后如果还在当前页则走网页版
+				var loaded = false;
+				var iframe = document.createElement('iframe');
+				iframe.style.display = 'none';
+				iframe.src = scheme;
+				document.body.appendChild(iframe);
+				setTimeout(function () {
+					if (!loaded) {
+						document.body.removeChild(iframe);
+						window.location.href = url;
+					}
+				}, 1500);
+				// 如果 App 唤起成功页面会隐藏，visibilitychange 检测
+				document.addEventListener('visibilitychange', function () {
+					if (document.hidden) loaded = true;
+				}, { once: true });
+			} else {
+				window.open(url, '_blank');
+			}
 		},
 		cancelNav() {
 			this.navConfirmShow = false;
@@ -1111,6 +1307,32 @@ export default {
 	z-index: 10;
 }
 
+/* 加载占位 */
+.loading-placeholder {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 16px;
+	gap: 14px;
+
+	.lp-spinner {
+		width: 36px;
+		height: 36px;
+		border: 3px solid rgba(66, 185, 131, 0.15);
+		border-top-color: var(--accent, #42b983);
+		border-radius: 50%;
+		animation: lp-spin 0.8s linear infinite;
+	}
+	.lp-text {
+		font-size: 13px;
+		color: #bababa;
+	}
+}
+@keyframes lp-spin {
+	to { transform: rotate(360deg); }
+}
+
 .d-error {
 	margin: 10px 16px;
 	padding: 10px 14px;
@@ -1207,19 +1429,23 @@ export default {
 			cursor: pointer;
 			color: var(--accent, #42b983);
 			transition: all 0.2s ease;
+
 			&:hover {
 				background: rgba(66, 185, 131, 0.12);
 			}
+
 			&.active {
 				background: var(--accent, #42b983);
 				color: #fff;
 			}
+
 			// SVG 刷新图标旋转动画
 			.spinning {
 				animation: spin 1s linear infinite;
 				transform-origin: center;
 			}
 		}
+
 		.edge-divider {
 			width: 16px;
 			height: 1px;
@@ -1240,6 +1466,7 @@ export default {
 		justify-content: space-between;
 		gap: 10px;
 	}
+
 	.web-header-left {
 		.web-title {
 			font-size: 18px;
@@ -1248,6 +1475,7 @@ export default {
 			display: flex;
 			align-items: center;
 			gap: 6px;
+
 			.web-title-icon {
 				font-size: 18px;
 				line-height: 1;
@@ -1255,6 +1483,7 @@ export default {
 				top: -2px;
 			}
 		}
+
 		.web-now {
 			font-size: 13px;
 			color: var(--accent, #42b983);
@@ -1274,12 +1503,15 @@ export default {
 		background: rgba(0, 0, 0, 0.05);
 		cursor: pointer;
 		transition: all 0.25s ease;
+
 		&:hover {
 			background: rgba(66, 185, 131, 0.1);
 		}
+
 		&.on {
 			background: rgba(66, 185, 131, 0.12);
 		}
+
 		.pill-dot {
 			width: 8px;
 			height: 8px;
@@ -1287,15 +1519,18 @@ export default {
 			background: #bababa;
 			transition: background 0.25s ease;
 		}
+
 		&.on .pill-dot {
 			background: var(--accent, #42b983);
 			box-shadow: 0 0 6px rgba(66, 185, 131, 0.6);
 			animation: pill-breathe 2s ease-in-out infinite;
 		}
+
 		// 刷新中：加快呼吸节奏
 		.pill-dot.spinning {
 			animation: pill-breathe 0.8s ease-in-out infinite;
 		}
+
 		.pill-text {
 			font-size: 12px;
 			color: #2c3e50;
@@ -1303,9 +1538,21 @@ export default {
 			white-space: nowrap;
 		}
 	}
+
 	@keyframes pill-breathe {
-		0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 4px rgba(66, 185, 131, 0.4); }
-		50% { transform: scale(1.3); opacity: 0.7; box-shadow: 0 0 8px rgba(66, 185, 131, 0.8); }
+
+		0%,
+		100% {
+			transform: scale(1);
+			opacity: 1;
+			box-shadow: 0 0 4px rgba(66, 185, 131, 0.4);
+		}
+
+		50% {
+			transform: scale(1.3);
+			opacity: 0.7;
+			box-shadow: 0 0 8px rgba(66, 185, 131, 0.8);
+		}
 	}
 
 	// 头部底排：刷新按钮 + 最后刷新时间 + 收起
@@ -1315,6 +1562,7 @@ export default {
 		gap: 12px;
 		margin-top: 12px;
 	}
+
 	.web-refresh-btn {
 		display: inline-flex;
 		align-items: center;
@@ -1328,22 +1576,27 @@ export default {
 		cursor: pointer;
 		transition: all 0.2s ease;
 		box-shadow: 0 2px 8px rgba(66, 185, 131, 0.3);
+
 		.web-refresh-icon {
 			display: inline-block;
 		}
+
 		&.loading .web-refresh-icon {
 			animation: spin 1s linear infinite;
 		}
+
 		&:hover {
 			transform: translateY(-1px);
 			box-shadow: 0 4px 12px rgba(66, 185, 131, 0.4);
 		}
 	}
+
 	.web-last-time {
 		flex: 1;
 		font-size: 11px;
 		color: #bababa;
 	}
+
 	.web-collapse-btn {
 		display: inline-flex;
 		align-items: center;
@@ -1355,9 +1608,11 @@ export default {
 		color: #2c3e50;
 		cursor: pointer;
 		transition: all 0.2s ease;
+
 		.collapse-arrow {
 			font-size: 14px;
 		}
+
 		&:hover {
 			background: rgba(66, 185, 131, 0.1);
 			color: var(--accent, #42b983);
@@ -1377,21 +1632,25 @@ export default {
 	padding: 14px;
 	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
 	z-index: 20;
+
 	.cfg-title {
 		font-size: 14px;
 		font-weight: bold;
 		color: #2c3e50;
 		margin-bottom: 12px;
 	}
+
 	.cfg-row {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		margin-bottom: 10px;
+
 		.cfg-label {
 			font-size: 13px;
 			color: #606266;
 		}
+
 		.cfg-select {
 			height: 28px;
 			border: 1px solid rgba(0, 0, 0, 0.15);
@@ -1400,6 +1659,7 @@ export default {
 			padding: 0 6px;
 		}
 	}
+
 	.cfg-status {
 		font-size: 12px;
 		display: flex;
@@ -1407,19 +1667,23 @@ export default {
 		gap: 6px;
 		margin-bottom: 8px;
 	}
+
 	.cfg-dot {
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
 		display: inline-block;
+
 		&.active {
 			background: #42b983;
 			box-shadow: 0 0 4px rgba(66, 185, 131, 0.6);
 		}
+
 		&.inactive {
 			background: #bababa;
 		}
 	}
+
 	.cfg-desc {
 		font-size: 11px;
 		color: #bababa;
@@ -1452,6 +1716,7 @@ export default {
 		display: flex;
 		align-items: center;
 		gap: 10px;
+
 		.wwf-temp {
 			font-size: 30px;
 			font-weight: bold;
@@ -1459,12 +1724,14 @@ export default {
 			font-family: 'Courier New', monospace;
 			line-height: 1;
 		}
+
 		.wwf-info {
 			.wwf-city {
 				font-size: 13px;
 				font-weight: bold;
 				color: #2c3e50;
 			}
+
 			.wwf-desc {
 				font-size: 11px;
 				color: #bababa;
@@ -1472,21 +1739,11 @@ export default {
 			}
 		}
 	}
-	.wwf-extra {
-		font-size: 11px;
-		color: #bababa;
-		margin-top: 6px;
-	}
-	.wwf-forecast {
-		display: flex;
-		gap: 4px;
-		margin-top: 8px;
-		padding-top: 8px;
-		border-top: 1px dashed rgba(0, 0, 0, 0.06);
-	}
+
 	.wwf-fc {
 		flex: 1;
 		text-align: center;
+		animation: wwf-in 0.4s ease backwards;
 		.wwf-fc-date {
 			display: block;
 			font-size: 10px;
@@ -1505,6 +1762,17 @@ export default {
 			font-weight: bold;
 		}
 	}
+	.wwf-forecast {
+		display: flex;
+		gap: 4px;
+		margin-top: 8px;
+		padding-top: 8px;
+		border-top: 1px dashed rgba(0, 0, 0, 0.06);
+	}
+}
+@keyframes wwf-in {
+	from { opacity: 0; transform: translateY(6px); }
+	to { opacity: 1; transform: translateY(0); }
 }
 
 .daily:not(.is-mobile) {
@@ -1539,6 +1807,13 @@ export default {
 			justify-content: space-between;
 			gap: 8px;
 
+			// 左侧占位（与右侧等宽，保证 tab 严格居中）
+			.m-top-left {
+				flex: 1;
+				display: flex;
+				align-items: center;
+			}
+
 			.m-now {
 				font-size: 14px;
 				font-weight: bold;
@@ -1546,11 +1821,13 @@ export default {
 				font-family: 'Courier New', monospace;
 			}
 
+			// 中间 tab
 			.m-tabs-mini {
 				display: inline-flex;
 				background: rgba(0, 0, 0, 0.06);
 				border-radius: 16px;
 				padding: 2px;
+				flex-shrink: 0;
 
 				.m-tab-mini {
 					padding: 5px 14px;
@@ -1567,24 +1844,32 @@ export default {
 				}
 			}
 
+			// 右侧操作按钮（flex:1 与左侧对称，保证 tab 居中）
 			.m-top-actions {
-				display: inline-flex;
+				flex: 1;
+				display: flex;
 				align-items: center;
+				justify-content: flex-end;
 				gap: 10px;
 			}
 
-			.m-set-mini {
-				font-size: 16px;
+			// 统一 SVG 按钮样式
+			.m-icon-btn {
+				width: 32px;
+				height: 32px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				border-radius: 8px;
 				color: var(--accent, #42b983);
 				cursor: pointer;
-			}
+				transition: all 0.2s ease;
 
-			.m-refresh-mini {
-				font-size: 18px;
-				color: var(--accent, #42b983);
-				cursor: pointer;
+				&:hover {
+					background: rgba(66, 185, 131, 0.1);
+				}
 
-				&.loading {
+				&.loading svg {
 					animation: spin 1s linear infinite;
 				}
 			}
@@ -1630,8 +1915,15 @@ export default {
 	}
 
 	@keyframes m-pulse {
-		0%, 100% { opacity: 1; }
-		50% { opacity: 0.7; }
+
+		0%,
+		100% {
+			opacity: 1;
+		}
+
+		50% {
+			opacity: 0.7;
+		}
 	}
 
 	.m-nav-btn {
@@ -1670,37 +1962,46 @@ export default {
 
 		.m-sheet-handle {
 			flex-shrink: 0;
-			padding: 12px 16px 8px 16px;
+			padding: 10px 16px 10px 16px;
 			cursor: pointer;
 			display: flex;
+			flex-direction: column;
 			align-items: center;
-			gap: 10px;
+			gap: 8px;
+			border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 
 			.handle-bar {
-				width: 32px;
+				width: 36px;
 				height: 4px;
 				border-radius: 2px;
 				background: #d4d4d4;
 			}
 
-			.handle-title {
-				font-size: 14px;
-				font-weight: bold;
-				color: #2c3e50;
-				flex: 1;
-				white-space: nowrap;
-				overflow: hidden;
-				text-overflow: ellipsis;
-			}
-
-			.handle-set {
-				flex-shrink: 0;
-				font-size: 16px;
-				color: var(--accent, #42b983);
-				cursor: pointer;
-				padding: 4px;
-				&:hover {
-					opacity: 0.7;
+			.handle-info {
+				text-align: center;
+				width: 100%;
+				.handle-title {
+					font-size: 13px;
+					font-weight: bold;
+					color: #2c3e50;
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					.handle-sep {
+						color: #d4d4d4;
+						margin: 0 4px;
+						font-weight: normal;
+					}
+					.handle-dur {
+						color: var(--accent, #42b983);
+					}
+					.handle-cong {
+						&.cong-smooth { color: #42b983; }
+						&.cong-slow { color: #f5c542; }
+						&.cong-jam { color: #ef8e81; }
+						&.cong-bad { color: #ef6b5a; }
+						&.cong-unknown { color: #bababa; }
+					}
 				}
 			}
 		}
@@ -1735,6 +2036,7 @@ export default {
 	display: flex;
 	align-items: flex-end;
 }
+
 .m-cfg-sheet {
 	width: 100%;
 	background: #fff;
@@ -1749,12 +2051,14 @@ export default {
 		text-align: center;
 		margin-bottom: 16px;
 	}
+
 	.m-cfg-opts {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
 		gap: 8px;
 		margin-bottom: 14px;
 	}
+
 	.m-cfg-opt {
 		padding: 10px 4px;
 		text-align: center;
@@ -1764,6 +2068,7 @@ export default {
 		color: #2c3e50;
 		cursor: pointer;
 		transition: all 0.2s ease;
+
 		&.active {
 			background: var(--accent, #42b983);
 			color: #fff;
@@ -1771,6 +2076,7 @@ export default {
 			font-weight: bold;
 		}
 	}
+
 	.m-cfg-status {
 		font-size: 12px;
 		display: flex;
@@ -1779,19 +2085,23 @@ export default {
 		justify-content: center;
 		margin-bottom: 12px;
 		color: #2c3e50;
+
 		.cfg-dot {
 			width: 8px;
 			height: 8px;
 			border-radius: 50%;
 			display: inline-block;
+
 			&.active {
 				background: #42b983;
 			}
+
 			&.inactive {
 				background: #bababa;
 			}
 		}
 	}
+
 	.m-cfg-close {
 		text-align: center;
 		padding: 10px;
@@ -1802,10 +2112,12 @@ export default {
 		cursor: pointer;
 	}
 }
+
 @keyframes sheet-up {
 	from {
 		transform: translateY(100%);
 	}
+
 	to {
 		transform: translateY(0);
 	}
@@ -1839,12 +2151,14 @@ export default {
 		font-size: 40px;
 		margin-bottom: 10px;
 	}
+
 	.nav-modal-title {
 		font-size: 17px;
 		font-weight: bold;
 		color: #2c3e50;
 		margin-bottom: 8px;
 	}
+
 	.nav-modal-desc {
 		font-size: 12px;
 		color: #2c3e50;
@@ -1852,14 +2166,17 @@ export default {
 		margin-bottom: 6px;
 		padding: 0 4px;
 	}
+
 	.nav-modal-tip {
 		font-size: 11px;
 		color: #bababa;
 		margin-bottom: 16px;
 	}
+
 	.nav-modal-btns {
 		display: flex;
 		gap: 10px;
+
 		.nav-modal-btn {
 			flex: 1;
 			padding: 10px 0;
@@ -1868,14 +2185,17 @@ export default {
 			font-weight: bold;
 			cursor: pointer;
 			transition: all 0.2s ease;
+
 			&.cancel {
 				background: rgba(0, 0, 0, 0.05);
 				color: #2c3e50;
 			}
+
 			&.confirm {
 				background: var(--accent, #42b983);
 				color: #fff;
 			}
+
 			&:active {
 				transform: scale(0.97);
 			}
@@ -1888,6 +2208,7 @@ export default {
 		opacity: 0;
 		transform: scale(0.9) translateY(10px);
 	}
+
 	to {
 		opacity: 1;
 		transform: scale(1) translateY(0);
@@ -1898,6 +2219,7 @@ export default {
 .nav-fade-leave-active {
 	transition: opacity 0.25s ease;
 }
+
 .nav-fade-enter,
 .nav-fade-leave-to {
 	opacity: 0;

@@ -45,6 +45,7 @@ export default {
 		font-weight: bold;
 		color: #2c3e50;
 	}
+
 	.d-now {
 		font-size: 13px;
 		color: var(--accent, #42b983);
@@ -52,6 +53,7 @@ export default {
 		font-family: 'Courier New', monospace;
 		font-weight: bold;
 	}
+
 	.d-refresh {
 		display: inline-flex;
 		align-items: center;
@@ -63,19 +65,28 @@ export default {
 		font-size: 13px;
 		cursor: pointer;
 		transition: all 0.2s ease;
+
 		.d-refresh-icon {
 			display: inline-block;
 		}
+
 		&.loading .d-refresh-icon {
 			animation: spin 1s linear infinite;
 		}
+
 		&:hover {
 			opacity: 0.9;
 		}
 	}
 }
+
 @keyframes spin {
-	from { transform: rotate(0deg); }
-	to { transform: rotate(360deg); }
+	from {
+		transform: rotate(0deg);
+	}
+
+	to {
+		transform: rotate(360deg);
+	}
 }
 </style>

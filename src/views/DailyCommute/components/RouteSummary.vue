@@ -1,7 +1,7 @@
 <!-- 路线总览：总耗时 / 总距离 / 拥堵状态 / 过路费 -->
 <template>
 	<div class="route-summary" v-if="data">
-		<div class="rs-title"><span class="title-icon">📊</span> 路线概览</div>
+		<div class="rs-title" v-if="showTitle"><span class="title-icon">📊</span> 路线概览</div>
 		<div class="rs-grid">
 			<div class="rs-item">
 				<span class="rs-label">总耗时</span>
@@ -30,7 +30,8 @@
 export default {
 	name: 'RouteSummary',
 	props: {
-		data: { type: Object, default: null }
+		data: { type: Object, default: null },
+		showTitle: { type: Boolean, default: true }
 	}
 };
 </script>

@@ -41,9 +41,11 @@ export default {
 		color: #2c3e50;
 		cursor: pointer;
 		transition: all 0.2s ease;
+
 		.d-tab-icon {
 			font-size: 15px;
 		}
+
 		&.active {
 			background: var(--accent, #42b983);
 			color: #fff;
@@ -51,6 +53,7 @@ export default {
 			box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
 		}
 	}
+
 	.d-tab-tip {
 		font-size: 11px;
 		color: #bababa;
