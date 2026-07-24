@@ -51,14 +51,13 @@ export default {
 	border: 1px solid rgba(0, 0, 0, 0.06);
 
 	.wc-live {
-		padding-bottom: 10px;
-		border-bottom: 1px dashed rgba(0, 0, 0, 0.06);
 
 		.wc-live-main {
 			display: flex;
 			align-items: center;
 			gap: 12px;
 		}
+
 		.wc-temp {
 			font-size: 32px;
 			font-weight: bold;
@@ -67,34 +66,41 @@ export default {
 			line-height: 1;
 			flex-shrink: 0;
 		}
+
 		.wc-live-meta {
 			flex: 1;
 			min-width: 0;
 			display: flex;
 			align-items: baseline;
 			gap: 6px;
+
 			.wc-weather {
 				font-size: 15px;
 				color: #2c3e50;
 				font-weight: bold;
 			}
+
 			.wc-city {
 				font-size: 13px;
 				color: #bababa;
 			}
 		}
+
 		.wc-extra {
 			flex-shrink: 0;
 			font-size: 11px;
 			color: #bababa;
 			white-space: nowrap;
+
 			.wc-humidity {
 				color: #2c3e50;
 			}
+
 			.wc-extra-sep {
 				margin: 0 4px;
 				color: #d4d4d4;
 			}
+
 			.wc-wind {
 				color: #2c3e50;
 			}
@@ -106,6 +112,7 @@ export default {
 		gap: 6px;
 		margin-top: 10px;
 	}
+
 	.wc-fc-item {
 		flex: 1;
 		min-width: 0;
@@ -114,21 +121,25 @@ export default {
 		border-radius: 8px;
 		background: rgba(0, 0, 0, 0.03);
 		transition: all 0.25s ease;
+
 		&:hover {
 			background: rgba(66, 185, 131, 0.08);
 			transform: translateY(-2px);
 		}
+
 		.fc-day {
 			font-size: 11px;
 			color: #bababa;
 			margin-bottom: 4px;
 		}
+
 		.fc-w {
 			font-size: 12px;
 			font-weight: bold;
 			color: #2c3e50;
 			margin-bottom: 4px;
 		}
+
 		.fc-temp {
 			font-size: 10px;
 			color: var(--accent, #42b983);

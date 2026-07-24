@@ -129,11 +129,13 @@
 						<span class="wwf-temp">{{ weatherLive.temperature }}°</span>
 						<div class="wwf-info">
 							<div class="wwf-city">{{ weatherLive.city }} · {{ weatherLive.weather }}</div>
-							<div class="wwf-desc">湿度{{ weatherLive.humidity }}% · {{ weatherLive.windDirection }}风{{ weatherLive.windPower }}级</div>
+							<div class="wwf-desc">湿度{{ weatherLive.humidity }}% · {{ weatherLive.windDirection }}风{{
+								weatherLive.windPower }}级</div>
 						</div>
 					</div>
 					<div class="wwf-forecast" v-if="weatherForecast.length">
-						<div class="wwf-fc" v-for="(f, i) in weatherForecast" :key="i" :style="{ animationDelay: i * 0.06 + 's' }">
+						<div class="wwf-fc" v-for="(f, i) in weatherForecast" :key="i"
+							:style="{ animationDelay: i * 0.06 + 's' }">
 							<span class="wwf-fc-date">{{ f.week }}</span>
 							<span class="wwf-fc-w">{{ f.dayWeather }}</span>
 							<span class="wwf-fc-t">{{ f.nightTemp }}~{{ f.dayTemp }}°</span>
@@ -204,7 +206,8 @@
 							<span class="handle-sep">·</span>
 							<span class="handle-dur">{{ currentRouteData.durationText }}</span>
 							<span class="handle-sep">·</span>
-							<span class="handle-cong" :class="'cong-' + currentRouteData.congestionCls">{{ currentRouteData.congestionText }}</span>
+							<span class="handle-cong" :class="'cong-' + currentRouteData.congestionCls">{{
+								currentRouteData.congestionText }}</span>
 						</span>
 					</div>
 					<div class="handle-info" v-else>
@@ -218,7 +221,8 @@
 					<segment-duration :data="currentRouteData"></segment-duration>
 					<time-line :data="currentRouteData" :now="now" :show-remain="tab === 'go'"></time-line>
 					<div class="d-error" v-if="errorMsg">{{ errorMsg }}</div>
-					<weather-card :live="weatherLive" :forecast="weatherForecast" :last-update="lastRefreshTime ? '天气更新于 ' + lastRefreshTime : ''"></weather-card>
+					<weather-card :live="weatherLive" :forecast="weatherForecast"
+						:last-update="lastRefreshTime ? '天气更新于 ' + lastRefreshTime : ''"></weather-card>
 					<div class="d-foot">数据来源：高德地图实时路径规划 · 仅供参考</div>
 				</div>
 				<!-- tab 未确定时显示加载占位 -->
@@ -1324,13 +1328,17 @@ export default {
 		border-radius: 50%;
 		animation: lp-spin 0.8s linear infinite;
 	}
+
 	.lp-text {
 		font-size: 13px;
 		color: #bababa;
 	}
 }
+
 @keyframes lp-spin {
-	to { transform: rotate(360deg); }
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 .d-error {
@@ -1744,17 +1752,20 @@ export default {
 		flex: 1;
 		text-align: center;
 		animation: wwf-in 0.4s ease backwards;
+
 		.wwf-fc-date {
 			display: block;
 			font-size: 10px;
 			color: #bababa;
 		}
+
 		.wwf-fc-w {
 			display: block;
 			font-size: 10px;
 			color: #2c3e50;
 			margin: 2px 0;
 		}
+
 		.wwf-fc-t {
 			display: block;
 			font-size: 9px;
@@ -1762,6 +1773,7 @@ export default {
 			font-weight: bold;
 		}
 	}
+
 	.wwf-forecast {
 		display: flex;
 		gap: 4px;
@@ -1770,9 +1782,17 @@ export default {
 		border-top: 1px dashed rgba(0, 0, 0, 0.06);
 	}
 }
+
 @keyframes wwf-in {
-	from { opacity: 0; transform: translateY(6px); }
-	to { opacity: 1; transform: translateY(0); }
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 .daily:not(.is-mobile) {
@@ -1980,6 +2000,7 @@ export default {
 			.handle-info {
 				text-align: center;
 				width: 100%;
+
 				.handle-title {
 					font-size: 13px;
 					font-weight: bold;
@@ -1987,20 +2008,37 @@ export default {
 					white-space: nowrap;
 					overflow: hidden;
 					text-overflow: ellipsis;
+
 					.handle-sep {
 						color: #d4d4d4;
 						margin: 0 4px;
 						font-weight: normal;
 					}
+
 					.handle-dur {
 						color: var(--accent, #42b983);
 					}
+
 					.handle-cong {
-						&.cong-smooth { color: #42b983; }
-						&.cong-slow { color: #f5c542; }
-						&.cong-jam { color: #ef8e81; }
-						&.cong-bad { color: #ef6b5a; }
-						&.cong-unknown { color: #bababa; }
+						&.cong-smooth {
+							color: #42b983;
+						}
+
+						&.cong-slow {
+							color: #f5c542;
+						}
+
+						&.cong-jam {
+							color: #ef8e81;
+						}
+
+						&.cong-bad {
+							color: #ef6b5a;
+						}
+
+						&.cong-unknown {
+							color: #bababa;
+						}
 					}
 				}
 			}
