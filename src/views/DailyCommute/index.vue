@@ -16,8 +16,7 @@
 						<div class="web-header-top">
 							<div class="web-header-left">
 								<div class="web-title"><span class="web-title-icon">🚗</span> 每日通勤</div>
-								<div class="web-now" @click="manualLocate" title="点击获取当前位置">{{ nowText }}{{ locateStatus
-									? ' · ' + locateStatus : '' }}</div>
+								<div class="web-now" @click="manualLocate" title="点击获取当前位置">{{ nowText }}</div>
 							</div>
 							<!-- 自动刷新指示胶囊（点击打开设置） -->
 							<div class="web-auto-pill" :class="{ on: refreshInterval > 0 }"
@@ -160,8 +159,7 @@
 				<div class="m-top-bar">
 					<!-- 左侧：占位保持 tab 居中 -->
 					<div class="m-top-left">
-						<span class="m-now" @click="manualLocate" title="点击获取当前位置">{{ nowText }}{{ locateStatus ? ' · '
-							+ locateStatus : '' }}</span>
+						<span class="m-now" @click="manualLocate" title="点击获取当前位置">{{ nowText }}</span>
 					</div>
 					<!-- 中间：tab（严格居中） -->
 					<div class="m-tabs-mini">
@@ -256,6 +254,14 @@
 			</transition>
 		</template>
 
+		<!-- toast 提示 -->
+		<transition name="nav-fade">
+			<div class="daily-toast" :class="'toast-' + toast.type" v-if="toast.show" @click="toast.show = false">
+				<span class="toast-icon">{{ toast.type === 'success' ? '✓' : '✕' }}</span>
+				<span class="toast-text">{{ toast.text }}</span>
+			</div>
+		</transition>
+
 		<!-- 导航确认弹窗（防误触） -->
 		<transition name="nav-fade">
 			<div class="nav-mask" v-if="navConfirmShow" @click="cancelNav">
@@ -336,6 +342,8 @@ export default {
 			tabSource: 'time', // tab 来源：time 时间判断 / location 定位判断
 			_locating: false, // 是否正在定位
 			locateStatus: '', // 定位状态提示
+			toast: { show: false, type: 'success', text: '' },
+			toastTimer: null,
 			refreshConfigOpen: false, // web 端刷新设置弹层
 			mRefreshConfigOpen: false, // 移动端刷新设置弹层
 			// 天气
@@ -922,53 +930,71 @@ export default {
 			return null; // 相等，走时间逻辑
 		},
 		// 手动触发定位（点击时间触发）
+		// toast 提示
+		showToast(type, text) {
+			var self = this;
+			if (self.toastTimer) clearTimeout(self.toastTimer);
+			self.toast.type = type;
+			self.toast.text = text;
+			self.toast.show = true;
+			self.toastTimer = setTimeout(function () {
+				self.toast.show = false;
+			}, 3000);
+		},
 		manualLocate() {
 			var self = this;
 			if (self._locating) return;
 			self._locating = true;
-			self.locateStatus = '正在获取定位...';
-			// 优先使用浏览器原生 geolocation（线上 HTTPS 环境必需，iOS Safari 兼容性好）
-			if (navigator.geolocation) {
-				navigator.geolocation.getCurrentPosition(
-					function (position) {
-						self._locating = false;
-						self.onLocateSuccess([position.coords.longitude, position.coords.latitude]);
-					},
-					function (err) {
-						self._locating = false;
-						var msg = err.message || '未知错误';
-						if (err.code === 1) msg = '用户拒绝了定位权限';
-						else if (err.code === 2) msg = '位置不可用';
-						else if (err.code === 3) msg = '定位超时';
-						self.locateStatus = '定位失败：' + msg;
-						console.warn('[DailyCommute] 浏览器定位失败:', err.code, msg);
-						// 降级到高德 Geolocation
-						self.locateByAMap();
-					},
-					{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-				);
-			} else {
+			// 直接用高德 Geolocation（和自动定位一致，确保行为统一）
+			try {
+				var geolocation = new self.AMap.Geolocation({
+					enableHighAccuracy: true,
+					timeout: 10000,
+					showButton: false,
+					showMarker: false,
+					showCircle: false,
+					zoomToAccuracy: false,
+					panToLocation: false,
+					noGeoLocation: false
+				});
+				geolocation.getCurrentPosition(function (status, result) {
+					self._locating = false;
+					if (status === 'complete' && result && result.position) {
+						self.onLocateSuccess([result.position.lng, result.position.lat]);
+						self.showToast('success', '定位成功');
+					} else {
+						self.showToast('error', '定位失败，请检查浏览器定位权限或网络');
+					}
+				});
+			} catch (e) {
 				self._locating = false;
-				self.locateByAMap();
+				self.showToast('error', '定位异常：' + e.message);
 			}
 		},
 		// 自动获取当前定位（页面初始化时调用）
-		// 优先使用浏览器原生 geolocation（线上 HTTPS 环境必需），失败再降级高德 Geolocation
+		// 直接用高德 Geolocation（昨天能正常工作的方式）
 		locateCurrent() {
 			var self = this;
-			if (navigator.geolocation) {
-				navigator.geolocation.getCurrentPosition(
-					function (position) {
-						self.onLocateSuccess([position.coords.longitude, position.coords.latitude]);
-					},
-					function (err) {
-						console.warn('[DailyCommute] 自动定位失败，降级高德:', err.code, err.message);
-						self.locateByAMap();
-					},
-					{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-				);
-			} else {
-				self.locateByAMap();
+			try {
+				var geolocation = new self.AMap.Geolocation({
+					enableHighAccuracy: true,
+					timeout: 10000,
+					showButton: false,
+					showMarker: false,
+					showCircle: false,
+					zoomToAccuracy: false,
+					panToLocation: false,
+					noGeoLocation: false
+				});
+				geolocation.getCurrentPosition(function (status, result) {
+					if (status === 'complete' && result && result.position) {
+						self.onLocateSuccess([result.position.lng, result.position.lat]);
+					} else {
+						console.warn('[DailyCommute] 高德定位失败:', status, result);
+					}
+				});
+			} catch (e) {
+				console.warn('[DailyCommute] 高德定位异常:', e);
 			}
 		},
 		// 高德 Geolocation 定位（降级方案）
@@ -999,7 +1025,6 @@ export default {
 			var self = this;
 			self.currentLnglat = lnglat;
 			self.drawCurrentMarker();
-			self.locateStatus = '定位成功';
 			if (!self._initRefreshed) {
 				self._tabByLocationDone = true;
 				var newTab = self.autoTabByLocation(self.currentLnglat);
@@ -2306,5 +2331,51 @@ export default {
 .nav-fade-enter,
 .nav-fade-leave-to {
 	opacity: 0;
+}
+
+/* toast 提示 */
+.daily-toast {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 10001;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 14px 22px;
+	border-radius: 12px;
+	backdrop-filter: blur(10px);
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+	cursor: pointer;
+
+	.toast-icon {
+		width: 20px;
+		height: 20px;
+		line-height: 20px;
+		text-align: center;
+		border-radius: 50%;
+		font-size: 13px;
+		font-weight: bold;
+	}
+	.toast-text {
+		font-size: 14px;
+		font-weight: bold;
+		color: #fff;
+	}
+	&.toast-success {
+		background: rgba(66, 185, 131, 0.95);
+		.toast-icon {
+			background: #fff;
+			color: #42b983;
+		}
+	}
+	&.toast-error {
+		background: rgba(239, 107, 90, 0.95);
+		.toast-icon {
+			background: #fff;
+			color: #ef6b5a;
+		}
+	}
 }
 </style>
