@@ -1,7 +1,7 @@
 <template>
 	<div class="fx67ll-box">
 		<div class="fx67ll-header">
-			<div class="fx67ll-title"><span @click="linktoFx67ll">fx67ll's AI 大数据地图服务 Demo 合集</span></div>
+			<div class="fx67ll-title"><span @click="linktoFx67ll">fx67ll's AI 大数据地图服务 · 演示作品合集</span></div>
 			<div class="fx67ll-subtitle">基于高德地图 JS API 2.0 · AI 驱动的可视化示例</div>
 		</div>
 
