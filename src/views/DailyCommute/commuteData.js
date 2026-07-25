@@ -80,10 +80,10 @@ export function fmtDistance(meter) {
   return meter + ' 米';
 }
 
-// 根据当前小时自动判断上班/下班：6:00~12:00 上班，其余下班
+// 根据当前小时自动判断上班/下班：0:00~12:00 上班，12:00~24:00 下班
 export function autoTabByHour(d) {
   var h = d.getHours();
-  return h >= 6 && h < 12 ? 'go' : 'back';
+  return h < 12 ? 'go' : 'back';
 }
 
 // ===== 高德 API 请求队列（规避 1 秒并发不超过 3 的限制）=====
