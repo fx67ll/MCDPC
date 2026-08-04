@@ -62,37 +62,26 @@ export default {
 			var arrive = new Date(this.now.getTime() + this.duration * 1000);
 			return arrive > this.todayAt(9, 0);
 		},
-		latestStartText() {
-			var deadline = this.todayAt(9, 0);
-			var latest = new Date(deadline - this.duration * 1000);
-			if (latest < this.now) return '已超时';
-			var h = latest.getHours();
-			var m = latest.getMinutes();
-			return (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
-		},
 		subText() {
 			if (this.period === 'today') {
-				// 9~18点
-				if (this.isLate) {
-					return '⚠ 现在出发将迟到 ' + fmtDuration(Math.floor((new Date(this.now.getTime() + this.duration * 1000) - this.todayAt(9, 0)) / 1000)) + '，建议尽快出发';
+				// 9~18点：已过上班时间，按是否迟到给简短状态
+				return this.isLate ? '已迟到，建议尽快出发' : '已到上班时间，现在出发可准时';
+			}
+			// 9点前 / 次日：倒计时模式，按剩余时间紧迫度给行动建议
+			// 最晚出发时间由抵达卡展示，这里聚焦倒计时语境
+			var r = this.remainSeconds;
+			if (this.duration > 0 && r > 0) {
+				// 剩余时间相对通勤耗时的富余度
+				var buffer = r - this.duration;
+				if (buffer <= 0) {
+					return '剩余时间已不足通勤，建议立即出发';
 				}
-				return '现在出发可准时抵达';
-			}
-			// 9点前 / 次日：倒计时模式
-			var label = this.period === 'nextday' ? '距离明日 09:00 上班' : '距离今日 09:00 上班';
-			var txt = label;
-			if (this.duration > 0) {
-				var latest = new Date(this.target - this.duration * 1000);
-				if (latest > this.now) {
-					var h = latest.getHours();
-					var m = latest.getMinutes();
-					txt += '，最晚 ' + (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m) + ' 出发';
+				if (buffer <= 1800) {
+					return '时间偏紧，建议尽快出发';
 				}
+				return '时间充裕，可从容出发';
 			}
-			if (this.bestDuration && this.bestDuration < this.duration) {
-				txt += '（切换更快路线可省 ' + fmtDuration(this.duration - this.bestDuration) + '）';
-			}
-			return txt;
+			return '';
 		}
 	},
 	methods: {
@@ -114,7 +103,12 @@ export default {
 	background: linear-gradient(135deg, var(--accent, #42b983), rgba(66, 185, 131, 0.6));
 	color: #fff;
 	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
-	transition: background 0.3s ease;
+	transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 22px rgba(0, 0, 0, 0.15);
+	}
 
 	.cd-main {
 		display: flex;

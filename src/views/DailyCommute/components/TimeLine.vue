@@ -47,6 +47,13 @@ export default {
 	border-radius: 12px;
 	background: #fff;
 	border: 1px solid rgba(0, 0, 0, 0.06);
+	transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+		border-color: var(--accent, #42b983);
+	}
 
 	.tl-title {
 		font-size: 13px;

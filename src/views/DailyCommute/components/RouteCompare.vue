@@ -64,6 +64,13 @@ export default {
 	border-radius: 12px;
 	background: #fff;
 	border: 1px solid rgba(0, 0, 0, 0.06);
+	transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+		border-color: var(--accent, #42b983);
+	}
 
 	.rc-title {
 		font-size: 13px;
@@ -101,8 +108,8 @@ export default {
 
 		&.active {
 			border-color: var(--accent, #42b983);
-			background: rgba(66, 185, 131, 0.06);
-			box-shadow: 0 2px 8px rgba(66, 185, 131, 0.15);
+			background: var(--accent-bg, rgba(66, 185, 131, 0.06));
+			box-shadow: 0 2px 8px var(--accent-shadow, rgba(66, 185, 131, 0.15));
 		}
 
 		&.loading {

@@ -1,10 +1,12 @@
 <!-- @name: DailyCommute -->
 <!-- @author: fx67ll -->
-<!-- @version: 1.0.0-->
+<!-- @version: 1.2.0-->
 <!-- @description：每日通勤用时查看页。上班/下班双面板，按当前时间自动切换。
                 2 条路线（起始点不同），途经南京花神科技广场东门，终点 BeanStar 比星咖啡(江宁纳科东店)。
                 展示路线耗时、抵达途经点/终点预估时间点、上班距 9 点倒计时、路段拥堵红绿、道路封闭提示、
-                路线对比推荐、出发建议、一键导航。使用高德 AMap.Driving 路径规划。移动端优先，web/移动风格一致。-->
+                路线对比推荐、出发建议、一键导航。使用高德 AMap.Driving 路径规划。移动端优先，web/移动风格一致。
+                v1.2.0：隐藏路段耗时计算独立于通用分段逻辑，仅叠加总时长与首/末段，不新增分段行；
+                fx67ll 专用时间信息卡（江浦→花神科技园东门驾车用时），web 端路线对比上方、移动端左上角悬浮。-->
 
 <template>
 	<div class="daily" :class="['theme-' + theme, { 'is-mobile': isMobile }]">
@@ -78,6 +80,32 @@
 							<countdown-card v-if="tab === 'go'" :now="now"
 								:duration="currentRouteData ? currentRouteData.duration : 0"
 								:best-duration="bestDuration"></countdown-card>
+							<!-- fx67ll 专用时间信息卡 -->
+							<div class="fx-card" v-if="tab">
+								<div class="fx-head">
+									<span class="fx-badge">⏱ fx67ll</span>
+									<span class="fx-title">专用时间信息</span>
+								</div>
+								<div class="fx-route">
+									<span class="fx-from">{{ fx67llCard.fromName }}</span>
+									<span class="fx-arrow">→</span>
+									<span class="fx-to">{{ fx67llCard.toName }}</span>
+								</div>
+								<div class="fx-stats">
+									<div class="fx-stat">
+										<span class="fx-stat-label">驾车用时</span>
+										<span class="fx-stat-val" :class="{ loading: !fx67llCard.loaded }">{{ fx67llCard.durationText }}</span>
+									</div>
+									<div class="fx-stat">
+										<span class="fx-stat-label">预计抵达</span>
+										<span class="fx-stat-val">{{ fx67llCard.arriveText }}</span>
+									</div>
+								</div>
+								<div class="fx-note">基于高德实时路径规划，仅供 fx67ll 参考</div>
+							</div>
+							<!-- 抵达信息卡：路线对比上方突出展示 -->
+							<arrive-card v-if="currentRouteData" :data="currentRouteData" :tab="tab" :now="now"
+								:best-duration="bestDuration"></arrive-card>
 							<route-compare :routes="routeResults" :current="currentRoute"
 								@select="switchRoute"></route-compare>
 							<alert-banner :text="closedInfo"></alert-banner>
@@ -154,7 +182,7 @@
 				<div class="map-loading" v-show="isLoading">规划路线中...</div>
 			</div>
 
-			<!-- 顶部浮层：tab + 倒计时 -->
+			<!-- 顶部浮层：tab + 倒计时 + fx67ll 专用时间信息浮卡（左上角） -->
 			<div class="m-top">
 				<div class="m-top-bar">
 					<!-- 左侧：占位保持 tab 居中 -->
@@ -187,14 +215,31 @@
 						</span>
 					</div>
 				</div>
+				<!-- fx67ll 专用时间信息浮卡（左上角，上班时位于倒计时卡片上方） -->
+				<div class="m-fx-card" v-if="tab" :class="{ loaded: fx67llCard.loaded }">
+					<div class="m-fx-head">
+						<span class="m-fx-badge">⏱ fx67ll</span>
+						<span class="m-fx-route">{{ fx67llCard.fromName }} → {{ fx67llCard.toName }}</span>
+					</div>
+					<div class="m-fx-body">
+						<div class="m-fx-dur" :class="{ loading: !fx67llCard.loaded }">{{ fx67llCard.durationText }}</div>
+						<div class="m-fx-arrive" v-if="fx67llCard.loaded">抵达 {{ fx67llCard.arriveText }}</div>
+					</div>
+				</div>
 				<div class="m-countdown" v-if="tab === 'go'" :class="{ late: countdownLate }">
 					<span class="m-cd-label">{{ countdownPeriod === 'nextday' ? '距明日 09:00' : '距 09:00' }}</span>
 					<span class="m-cd-time" :class="{ urgent: countdownUrgent }">{{ countdownText }}</span>
 				</div>
 			</div>
 
-			<!-- 一键导航 -->
-			<div class="m-nav-btn" v-if="currentRouteData" @click="openNav">🧭 导航</div>
+			<!-- 底部悬浮条：抵达时间 + 导航按钮（合并设计） -->
+			<div class="m-bottom-bar" v-if="currentRouteData">
+				<div class="m-arrive-float">
+					<span class="m-arrive-time">{{ currentRouteData.endArriveText || '--:--' }}</span>
+					<span class="m-arrive-tag">{{ tab === 'go' ? '到达' : '到家' }}</span>
+				</div>
+				<div class="m-nav-btn" @click="openNav">🧭 开始导航</div>
+			</div>
 
 			<!-- 底部抽屉：路线信息 -->
 			<div class="m-sheet" :class="{ expanded: sheetExpanded }">
@@ -285,9 +330,10 @@
 
 <script>
 import { loadAMap } from '@/utils/amapLoader.js';
-import { GO_ROUTES, BACK_ROUTES, CONGESTION, formatTime, fmtDuration, fmtDistance, autoTabByHour, enqueueAMapTask } from './commuteData.js';
+import { GO_ROUTES, BACK_ROUTES, CONGESTION, formatTime, fmtDuration, fmtDistance, autoTabByHour, enqueueAMapTask, getRoutePoints, getPoint, HIDDEN_LEG, FX67LL_INFO } from './commuteData.js';
 import CommuteHeader from './components/CommuteHeader.vue';
 import CommuteTabs from './components/CommuteTabs.vue';
+import ArriveCard from './components/ArriveCard.vue';
 import CountdownCard from './components/CountdownCard.vue';
 import RouteCompare from './components/RouteCompare.vue';
 import AlertBanner from './components/AlertBanner.vue';
@@ -302,6 +348,7 @@ export default {
 	components: {
 		CommuteHeader,
 		CommuteTabs,
+		ArriveCard,
 		CountdownCard,
 		RouteCompare,
 		AlertBanner,
@@ -349,6 +396,11 @@ export default {
 			// 天气
 			weatherLive: null,
 			weatherForecast: [],
+			// 隐藏路段耗时（秒）：按路线 key 缓存，不显示在地图上
+			hiddenDurations: {},
+			// fx67ll 专用时间信息：浦云路·虎桥路公交车站 → 花神科技园 用时（秒）
+			fx67llDuration: 0,
+			fx67llLoaded: false,
 			_resizeHandler: null
 		};
 	},
@@ -416,7 +468,7 @@ export default {
 			var arrive = new Date(this.now.getTime() + r.duration * 1000);
 			return arrive > this.todayAt(9, 0);
 		},
-		// 移动端倒计时时段（与 CountdownCard 一致）
+		// 移动端倒计时时段
 		countdownPeriod() {
 			var h = this.now.getHours();
 			if (h < 9) return 'before';
@@ -444,6 +496,20 @@ export default {
 				{ value: 600, label: '10 分钟' },
 				{ value: 0, label: '关闭' }
 			];
+		},
+		// fx67ll 专用时间信息卡片数据
+		fx67llCard() {
+			var toPoint = getPoint(FX67LL_INFO.toPointIndex);
+			var toName = toPoint ? toPoint.name : '';
+			// 上班：江浦 → 花神；下班：花神 → 江浦（方向随 tab 翻转）
+			var isGo = this.tab === 'go';
+			return {
+				fromName: isGo ? FX67LL_INFO.fromName : toName,
+				toName: isGo ? toName : FX67LL_INFO.fromName,
+				durationText: this.fx67llLoaded ? fmtDuration(this.fx67llDuration) : '计算中...',
+				arriveText: this.fx67llLoaded ? this.arriveText(this.fx67llDuration) : '--:--',
+				loaded: this.fx67llLoaded
+			};
 		}
 	},
 	mounted() {
@@ -564,6 +630,7 @@ export default {
 					if (done === routes.length) {
 						self.isLoading = false;
 						self.drawMarkersOnly();
+						self.queryFx67llInfo();
 					}
 				}, 10000);
 				self.planRoute(route, function (result) {
@@ -571,29 +638,35 @@ export default {
 					routeDone = true;
 					clearTimeout(routeTimer);
 					self.$set(self.routeResults, idx, result);
+					// 计算隐藏路段并入该路线结果（上班前置、下班后置，不在地图显示）
+					self.applyHiddenLeg(route, idx);
 					done++;
 					if (done === routes.length) {
 						self.isLoading = false;
 						// 选中路线已最后规划并画到地图，只需画标注
 						self.drawMarkersOnly();
+						// 刷新 fx67ll 专用时间信息
+						self.queryFx67llInfo();
 					}
 				});
 			});
 		},
-		// 获取路线所有途经点坐标数组（支持 via + via2）
+		// 解析路线为结构化点：{ start, vias:[], end }
+		// 通用取点：start=起点，end=终点，vias=途经点数组（数量不限）
+		getRoutePts(route) {
+			return getRoutePoints(route);
+		},
+		// 获取路线所有途经点坐标数组（数量不限）
 		getWaypoints(route) {
-			var wps = [route.via.lnglat];
-			if (route.via2) wps.push(route.via2.lnglat);
-			return wps;
+			var pts = this.getRoutePts(route);
+			return pts.vias.map(function (v) { return v.lnglat; });
 		},
 		// 构建关键时间点数组（起点→途经1→途经2→...→终点）
 		// 每个点包含：名称、抵达时间、距9点剩余、圆点类型
 		buildTimePoints(route, totalDuration) {
 			var self = this;
-			var viaNames = this.getViaNames(route);
-			var wps = this.getWaypoints(route);
-			// 所有点名称
-			var allNames = [route.start.name].concat(viaNames).concat([route.end.name]);
+			var pts = this.getRoutePts(route);
+			var allNames = [pts.start.name].concat(pts.vias.map(function (v) { return v.name; })).concat([pts.end.name]);
 			var totalSegs = allNames.length - 1;
 			var segDur = Math.round(totalDuration / totalSegs); // 均分估算
 			var points = [];
@@ -612,12 +685,12 @@ export default {
 			return points;
 		},
 		// 构建分段耗时数组（初始估算，后续由 drawMarkers 实际规划更新）
+		// 每段含 duration（秒，数值）与 durationText（展示），便于后续叠加隐藏时间
 		buildSegDurations(route, totalDuration) {
-			var viaNames = this.getViaNames(route);
-			var wps = this.getWaypoints(route);
-			var allPoints = [{ name: route.start.name }].concat(
-				viaNames.map(function (n) { return { name: n }; })
-			).concat([{ name: route.end.name }]);
+			var pts = this.getRoutePts(route);
+			var allPoints = [{ name: pts.start.name }].concat(
+				pts.vias.map(function (v) { return { name: v.name }; })
+			).concat([{ name: pts.end.name }]);
 			var totalSegs = allPoints.length - 1;
 			var segDur = Math.round(totalDuration / totalSegs);
 			var segs = [];
@@ -625,6 +698,7 @@ export default {
 				segs.push({
 					from: allPoints[i].name,
 					to: allPoints[i + 1].name,
+					duration: segDur,
 					durationText: fmtDuration(segDur)
 				});
 			}
@@ -632,17 +706,17 @@ export default {
 		},
 		// 获取路线所有途经点名称数组
 		getViaNames(route) {
-			var names = [route.via.name];
-			if (route.via2) names.push(route.via2.name);
-			return names;
+			var pts = this.getRoutePts(route);
+			return pts.vias.map(function (v) { return v.name; });
 		},
 		planRoute(route, callback) {
 			var self = this;
 			try {
 				enqueueAMapTask(function (done) {
+					var pts = self.getRoutePts(route);
 					self.driving.search(
-						route.start.lnglat,
-						route.end.lnglat,
+						pts.start.lnglat,
+						pts.end.lnglat,
 						{ waypoints: self.getWaypoints(route) },
 						function (status, result) {
 							done();
@@ -660,6 +734,7 @@ export default {
 		},
 		parseRoute(route, r) {
 			var self = this;
+			var pts = this.getRoutePts(route);
 			var duration = r.time || 0;
 			var distance = r.distance || 0;
 			var segments = [];
@@ -732,11 +807,11 @@ export default {
 			return {
 				name: route.name,
 				color: route.color,
-				startName: route.start.name,
+				startName: pts.start.name,
 				viaName: self.getViaNames(route).join(' → '),
-				endName: route.end.name,
-				startLnglat: route.start.lnglat,
-				endLnglat: route.end.lnglat,
+				endName: pts.end.name,
+				startLnglat: pts.start.lnglat,
+				endLnglat: pts.end.lnglat,
 				duration: duration,
 				durationText: fmtDuration(duration),
 				distanceText: fmtDistance(distance),
@@ -761,14 +836,15 @@ export default {
 			};
 		},
 		buildEmptyRoute(route, msg) {
+			var pts = this.getRoutePts(route);
 			return {
 				name: route.name,
 				color: route.color,
-				startName: route.start.name,
+				startName: pts.start.name,
 				viaName: this.getViaNames(route).join(' → '),
-				endName: route.end.name,
-				startLnglat: route.start.lnglat,
-				endLnglat: route.end.lnglat,
+				endName: pts.end.name,
+				startLnglat: pts.start.lnglat,
+				endLnglat: pts.end.lnglat,
 				duration: 0,
 				durationText: '--',
 				distanceText: '--',
@@ -814,9 +890,10 @@ export default {
 				// 已有规划结果，直接画标注 + 分段
 				// 但需要 driving 重新画当前选中路线到地图（切换路线时需要）
 				enqueueAMapTask(function (done) {
+					var pts = self.getRoutePts(route);
 					self.driving.search(
-						route.start.lnglat,
-						route.end.lnglat,
+						pts.start.lnglat,
+						pts.end.lnglat,
 						{ waypoints: self.getWaypoints(route) },
 						function (status, result) {
 							done();
@@ -828,9 +905,10 @@ export default {
 			} else {
 				// 无已有结果（首次或切换 tab），正常规划
 				enqueueAMapTask(function (done) {
+					var pts = self.getRoutePts(route);
 					self.driving.search(
-						route.start.lnglat,
-						route.end.lnglat,
+						pts.start.lnglat,
+						pts.end.lnglat,
 						{ waypoints: self.getWaypoints(route) },
 						function (status, result) {
 							done();
@@ -910,19 +988,22 @@ export default {
 			// d1: 定位到所有上班路线起点的最小距离
 			var d1 = Infinity;
 			GO_ROUTES.forEach(function (r) {
-				var d = dist(lnglat, r.start.lnglat);
+				var pts = getRoutePoints(r);
+				if (!pts.start) return;
+				var d = dist(lnglat, pts.start.lnglat);
 				if (d < d1) d1 = d;
 			});
 			// d2: 定位到所有上班路线途经点+终点的最小距离
 			var d2 = Infinity;
 			GO_ROUTES.forEach(function (r) {
-				var dv = dist(lnglat, r.via.lnglat);
-				if (dv < d2) d2 = dv;
-				var de = dist(lnglat, r.end.lnglat);
-				if (de < d2) d2 = de;
-				if (r.via2) {
-					var dv2 = dist(lnglat, r.via2.lnglat);
-					if (dv2 < d2) d2 = dv2;
+				var pts = getRoutePoints(r);
+				pts.vias.forEach(function (v) {
+					var dv = dist(lnglat, v.lnglat);
+					if (dv < d2) d2 = dv;
+				});
+				if (pts.end) {
+					var de = dist(lnglat, pts.end.lnglat);
+					if (de < d2) d2 = de;
 				}
 			});
 			if (d1 < d2) return 'go';
@@ -1094,19 +1175,18 @@ export default {
 			self.drawCurrentMarker();
 
 			// 起讫点标注（带标签名）
-			var startMarker = self.makePointMarker(route.start.lnglat, '起', route.start.name, '#42b983');
-			var viaMarker = self.makePointMarker(route.via.lnglat, '途', route.via.name, '#f5c542');
-			var endMarker = self.makePointMarker(route.end.lnglat, '终', route.end.name, '#ef6b5a');
+			var pts = self.getRoutePts(route);
+			var startMarker = self.makePointMarker(pts.start.lnglat, '起', pts.start.name, '#42b983');
+			var endMarker = self.makePointMarker(pts.end.lnglat, '终', pts.end.name, '#ef6b5a');
 			startMarker.setMap(self.map);
-			viaMarker.setMap(self.map);
 			endMarker.setMap(self.map);
-			self.markers.push(startMarker, viaMarker, endMarker);
-			// 第二途经点标注（如有）
-			if (route.via2) {
-				var via2Marker = self.makePointMarker(route.via2.lnglat, '途', route.via2.name, '#f5c542');
-				via2Marker.setMap(self.map);
-				self.markers.push(via2Marker);
-			}
+			self.markers.push(startMarker, endMarker);
+			// 途经点标注（数量不限）
+			pts.vias.forEach(function (v) {
+				var viaMarker = self.makePointMarker(v.lnglat, '途', v.name, '#f5c542');
+				viaMarker.setMap(self.map);
+				self.markers.push(viaMarker);
+			});
 
 			// 区段耗时标签：动态分段，根据途经点数量决定段数
 			// 构建路径点序列：起点 → 途经1 → 途经2(如有) → 终点
@@ -1114,11 +1194,11 @@ export default {
 				var viaNames = self.getViaNames(route);
 				var wps = self.getWaypoints(route);
 				// 所有点：起点 + 途经点们 + 终点
-				var allPoints = [{ lnglat: route.start.lnglat, name: route.start.name }];
+				var allPoints = [{ lnglat: pts.start.lnglat, name: pts.start.name }];
 				for (var wi = 0; wi < wps.length; wi++) {
 					allPoints.push({ lnglat: wps[wi], name: viaNames[wi] });
 				}
-				allPoints.push({ lnglat: route.end.lnglat, name: route.end.name });
+				allPoints.push({ lnglat: pts.end.lnglat, name: pts.end.name });
 
 				// 为每段（相邻两点间）创建耗时标签 + 规划
 				var segLabels = [];
@@ -1142,10 +1222,28 @@ export default {
 					(function (idx, labRef, p1Ref, p2Ref) {
 						self.planSegmentDuration(p1Ref.lnglat, p2Ref.lnglat, function (dur) {
 							labRef.setContent(self.makeTimeLabelContent(fmtDuration(dur) + ' → ' + p2Ref.name));
-							// 更新 segDurations 数组对应段的实际耗时
-							if (self.currentRouteData && self.currentRouteData.segDurations && self.currentRouteData.segDurations[idx]) {
+							// 更新 segDurations 数组对应段的实际耗时（按 from/to 名称匹配）
+							// 注意：若该段已叠加隐藏时间（hiddenApplied），需保留叠加量
+							if (self.currentRouteData && self.currentRouteData.segDurations) {
 								var newSegs = self.currentRouteData.segDurations.slice();
-								newSegs[idx] = Object.assign({}, newSegs[idx], { durationText: fmtDuration(dur) });
+								var fromName = p1Ref.name;
+								var toName = p2Ref.name;
+								var hiddenDur = self.hiddenDurations[route.key] || 0;
+								var isGo = self.tab === 'go';
+								for (var si2 = 0; si2 < newSegs.length; si2++) {
+									if (newSegs[si2].from === fromName && newSegs[si2].to === toName) {
+										// 判断该段是否为隐藏时间叠加目标段（上班首段/下班末段）
+										var isHiddenSeg = self.currentRouteData.hiddenApplied && (
+											(isGo && si2 === 0) || (!isGo && si2 === newSegs.length - 1)
+										);
+										var finalDur = dur + (isHiddenSeg ? hiddenDur : 0);
+										newSegs[si2] = Object.assign({}, newSegs[si2], {
+											duration: finalDur,
+											durationText: fmtDuration(finalDur)
+										});
+										break;
+									}
+								}
 								self.$set(self.routeResults, self.currentRoute, Object.assign({}, self.currentRouteData, { segDurations: newSegs }));
 							}
 							onSegDone();
@@ -1175,6 +1273,119 @@ export default {
 			} catch (e) {
 				callback(0);
 			}
+		},
+		// 计算隐藏路段耗时（秒）：上班=隐藏点→路线起点；下班=路线终点→隐藏点
+		// 仅算耗时，不在地图显示。结果按 route.key 缓存到 hiddenDurations。
+		// HIDDEN_LEG.enabled 为 false 时直接返回 0，通用逻辑完全不受影响。
+		queryHiddenLeg(route, callback) {
+			var self = this;
+			if (!HIDDEN_LEG.enabled) {
+				callback(0);
+				return;
+			}
+			var pts = self.getRoutePts(route);
+			if (!pts.start || !pts.end || !self.segDriving) {
+				callback(0);
+				return;
+			}
+			// 缓存命中（同 tab 内路线 key 不变，避免重复请求）
+			if (self.hiddenDurations[route.key] !== undefined) {
+				callback(self.hiddenDurations[route.key]);
+				return;
+			}
+			var from, to;
+			if (self.tab === 'go') {
+				from = HIDDEN_LEG.lnglat;
+				to = pts.start.lnglat;
+			} else {
+				from = pts.end.lnglat;
+				to = HIDDEN_LEG.lnglat;
+			}
+			self.planSegmentDuration(from, to, function (dur) {
+				self.$set(self.hiddenDurations, route.key, dur);
+				callback(dur);
+			});
+		},
+		// 把隐藏路段耗时并入路线结果：不新增分段行，隐藏时间叠加到首段/末段，总时长顺延
+		// 上班：hiddenDur 加到 segDurations[0]（起点→第一途经，即绿水湾→花神），总时长 +hiddenDur，所有点到达顺延
+		// 下班：hiddenDur 加到 segDurations[last]（末途经→终点，即花神→绿水湾），总时长 +hiddenDur，仅终点到达顺延
+		// 该方法在 parseRoute 完成正常结果后调用，叠加时间不影响通用分段逻辑
+		applyHiddenLeg(route, idx) {
+			var self = this;
+			self.queryHiddenLeg(route, function (hiddenDur) {
+				var data = self.routeResults[idx];
+				if (!data || hiddenDur <= 0) return;
+				// 规划失败/超时的路线不补隐藏段
+				if (!data.duration || data.duration <= 0) return;
+				// 防止重复并入（缓存命中或多次回调时只应用一次）
+				if (data.hiddenApplied) return;
+				var isGo = self.tab === 'go';
+				// 原路线耗时（不含隐藏段）
+				var baseDur = data.duration;
+				var totalDur = baseDur + hiddenDur;
+				// 叠加隐藏时间到对应分段：上班=首段，下班=末段
+				var newSegs = (data.segDurations || []).slice();
+				var segIdx = isGo ? 0 : newSegs.length - 1;
+				if (newSegs[segIdx]) {
+					var segDur = (newSegs[segIdx].duration || 0) + hiddenDur;
+					newSegs[segIdx] = Object.assign({}, newSegs[segIdx], {
+						duration: segDur,
+						durationText: fmtDuration(segDur)
+					});
+				}
+				var updated = Object.assign({}, data, {
+					duration: totalDur,
+					durationText: fmtDuration(totalDur),
+					segDurations: newSegs,
+					hiddenApplied: true
+				});
+				if (isGo) {
+					// 上班前置：所有点到达时间顺延 hiddenDur
+					updated.timePoints = self.buildTimePoints(route, totalDur);
+					updated.endArriveText = self.arriveText(totalDur);
+					updated.endRemainText = self.remainText(totalDur);
+					updated.endDurationText = fmtDuration(totalDur);
+					var goViaDur = Math.round(totalDur * 0.5);
+					updated.viaArriveText = self.arriveText(goViaDur);
+					updated.viaRemainText = self.remainText(goViaDur);
+					updated.viaDurationText = fmtDuration(goViaDur);
+				} else {
+					// 下班后置：途经点到达不变，终点(到家)到达 = 路线 + hiddenDur
+					if (data.timePoints && data.timePoints.length) {
+						var lastIdx = data.timePoints.length - 1;
+						updated.timePoints = data.timePoints.slice();
+						updated.timePoints[lastIdx] = Object.assign({}, updated.timePoints[lastIdx], {
+							arriveText: self.arriveText(totalDur),
+							remainText: self.remainText(totalDur)
+						});
+					}
+					updated.endArriveText = self.arriveText(totalDur);
+					updated.endRemainText = self.remainText(totalDur);
+					updated.endDurationText = fmtDuration(totalDur);
+				}
+				self.$set(self.routeResults, idx, updated);
+			});
+		},
+		// 查询 fx67ll 专用时间信息：按上下班方向查询
+		// 上班：江浦 → 花神科技园东门；下班：花神科技园东门 → 江浦（方向不同耗时不同）
+		queryFx67llInfo() {
+			var self = this;
+			if (!self.segDriving || !self.tab) return;
+			var toPoint = getPoint(FX67LL_INFO.toPointIndex);
+			if (!toPoint) return;
+			self.fx67llLoaded = false;
+			var from, to;
+			if (self.tab === 'go') {
+				from = FX67LL_INFO.fromLnglat;
+				to = toPoint.lnglat;
+			} else {
+				from = toPoint.lnglat;
+				to = FX67LL_INFO.fromLnglat;
+			}
+			self.planSegmentDuration(from, to, function (dur) {
+				self.fx67llDuration = dur || 0;
+				self.fx67llLoaded = true;
+			});
 		},
 		// 生成耗时标签的 content HTML（供 setContent 更新用）
 		makeTimeLabelContent(text) {
@@ -1216,6 +1427,7 @@ export default {
 			this.theme = tab;
 			this.tabSource = 'time'; // 手动切换标记为时间逻辑
 			this.currentRoute = 0;
+			this.hiddenDurations = {}; // 切换 tab 清空隐藏路段缓存（上下班方向不同）
 			this.refreshAll();
 		},
 		switchRoute(i) {
@@ -1344,10 +1556,14 @@ export default {
 
 	&.theme-go {
 		--accent: #42b983; // 上班：小清新绿
+		--accent-bg: rgba(66, 185, 131, 0.08);
+		--accent-shadow: rgba(66, 185, 131, 0.15);
 	}
 
 	&.theme-back {
 		--accent: #f5c542; // 下班：小清新黄
+		--accent-bg: rgba(245, 197, 66, 0.1);
+		--accent-shadow: rgba(245, 197, 66, 0.18);
 	}
 }
 
@@ -1415,6 +1631,118 @@ export default {
 	padding: 16px;
 }
 
+/* fx67ll 专用时间信息卡（web 端详情面板内） */
+.fx-card {
+	margin: 10px 16px;
+	border-radius: 12px;
+	background: linear-gradient(135deg, #2c3e50, #3a4a5e);
+	color: #fff;
+	padding: 14px 16px;
+	box-shadow: 0 4px 14px rgba(44, 62, 80, 0.25);
+	position: relative;
+	overflow: hidden;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 22px rgba(44, 62, 80, 0.35);
+	}
+
+	&::before {
+		content: '';
+		position: absolute;
+		top: -30px;
+		right: -30px;
+		width: 90px;
+		height: 90px;
+		border-radius: 50%;
+		background: rgba(245, 197, 66, 0.12);
+	}
+
+	.fx-head {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 10px;
+		position: relative;
+	}
+
+	.fx-badge {
+		font-size: 10px;
+		font-weight: bold;
+		color: #2c3e50;
+		background: #f5c542;
+		padding: 2px 8px;
+		border-radius: 8px;
+	}
+
+	.fx-title {
+		font-size: 13px;
+		font-weight: bold;
+		opacity: 0.9;
+	}
+
+	.fx-route {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 13px;
+		margin-bottom: 12px;
+		position: relative;
+
+		.fx-from {
+			font-weight: bold;
+		}
+
+		.fx-arrow {
+			color: #f5c542;
+		}
+
+		.fx-to {
+			font-weight: bold;
+			color: #f5c542;
+		}
+	}
+
+	.fx-stats {
+		display: flex;
+		gap: 10px;
+		position: relative;
+
+		.fx-stat {
+			flex: 1;
+			background: rgba(255, 255, 255, 0.08);
+			border-radius: 8px;
+			padding: 8px 10px;
+
+			.fx-stat-label {
+				display: block;
+				font-size: 10px;
+				opacity: 0.6;
+				margin-bottom: 4px;
+			}
+
+			.fx-stat-val {
+				font-size: 16px;
+				font-weight: bold;
+				font-family: 'Courier New', monospace;
+
+				&.loading {
+					opacity: 0.5;
+					font-size: 13px;
+				}
+			}
+		}
+	}
+
+	.fx-note {
+		font-size: 10px;
+		opacity: 0.5;
+		margin-top: 10px;
+		position: relative;
+	}
+}
+
 .nav-btn {
 	position: absolute;
 	right: 16px;
@@ -1466,6 +1794,7 @@ export default {
 		flex: 1;
 		overflow-y: auto;
 		overflow-x: hidden;
+		padding-bottom: 16px;
 	}
 
 	// 收起状态：贴边的竖向小胶囊
@@ -2016,19 +2345,126 @@ export default {
 		}
 	}
 
-	.m-nav-btn {
+	// 底部悬浮条：抵达时间 + 导航按钮（合并胶囊）
+	.m-bottom-bar {
 		position: absolute;
-		right: 12px;
-		bottom: 96px;
+		left: 50%;
+		transform: translateX(-50%);
+		bottom: 72px;
 		z-index: 6;
-		padding: 8px 14px;
-		border-radius: 18px;
-		background: var(--accent, #42b983);
+		display: flex;
+		align-items: center;
+		gap: 0;
+		padding: 0;
+		border-radius: 22px;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+		overflow: hidden;
+		max-width: calc(100% - 24px);
+
+		.m-arrive-float {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 5px;
+			padding: 10px 16px;
+			background: #fff;
+			color: #2c3e50;
+			white-space: nowrap;
+			flex: 1.25;
+			min-width: 0;
+
+			.m-arrive-time {
+				font-size: 19px;
+				font-weight: bold;
+				font-family: 'Courier New', monospace;
+				color: var(--accent, #42b983);
+				line-height: 1;
+			}
+
+			.m-arrive-tag {
+				font-size: 12px;
+				color: #95a5a6;
+				line-height: 1;
+			}
+		}
+
+		.m-nav-btn {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 10px 18px;
+			background: var(--accent, #42b983);
+			color: #fff;
+			font-size: 13px;
+			font-weight: bold;
+			cursor: pointer;
+			white-space: nowrap;
+			flex: 1;
+			min-width: 0;
+		}
+	}
+
+	// fx67ll 专用时间信息浮卡（地图左下角悬浮）
+	.m-fx-card {
+		display: inline-flex;
+		flex-direction: column;
+		margin-top: 8px;
+		z-index: 6;
+		max-width: calc(100% - 24px);
+		border-radius: 12px;
+		background: rgba(44, 62, 80, 0.92);
+		backdrop-filter: blur(8px);
 		color: #fff;
-		font-size: 13px;
-		font-weight: bold;
-		cursor: pointer;
-		box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+		padding: 8px 12px;
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+		border: 1px solid rgba(245, 197, 66, 0.3);
+
+		.m-fx-head {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			margin-bottom: 4px;
+
+			.m-fx-badge {
+				font-size: 9px;
+				font-weight: bold;
+				color: #2c3e50;
+				background: #f5c542;
+				padding: 1px 6px;
+				border-radius: 6px;
+				flex-shrink: 0;
+			}
+
+			.m-fx-route {
+				font-size: 10px;
+				opacity: 0.8;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+		}
+
+		.m-fx-body {
+			display: flex;
+			align-items: baseline;
+			gap: 8px;
+
+			.m-fx-dur {
+				font-size: 18px;
+				font-weight: bold;
+				font-family: 'Courier New', monospace;
+
+				&.loading {
+					font-size: 12px;
+					opacity: 0.5;
+				}
+			}
+
+			.m-fx-arrive {
+				font-size: 10px;
+				opacity: 0.7;
+			}
+		}
 	}
 
 	.m-sheet {
