@@ -101,8 +101,8 @@ router.beforeEach((to, from, next) => {
     next({ name: 'index' });
     return;
   }
-  // 不显示返回按钮：首页 / 每日通勤（daily 为新页签独立页面，无需返回）
-  if (to.name !== 'index' && to.name !== 'daily') {
+  // 不显示返回按钮：首页 / 每日通勤（daily 为新页签独立页面，无需返回）/ 404（页面自带返回上一页入口，避免重复）
+  if (to.name !== 'index' && to.name !== 'daily' && to.name !== '404') {
     store.dispatch('setBtnStateAsync', true);
   } else {
     store.dispatch('setBtnStateAsync', false);
