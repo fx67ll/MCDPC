@@ -46,7 +46,7 @@
 			<div class="card-grid">
 				<div class="demo-card commute" @click="openDaily">
 					<div class="card-icon" :style="{ background: 'linear-gradient(135deg, #42b983, #f5c542)' }">
-						<span class="icon-emoji">⏰</span>
+						<span class="icon-emoji">🚗</span>
 					</div>
 					<div class="card-body">
 						<div class="card-title">每日通勤</div>
@@ -144,7 +144,7 @@ export default {
 			aiDemos: [
 				{
 					path: 'https://ai.fx67ll.com/national-day-self-driving-plan',
-					icon: '🚗',
+					icon: '🚀',
 					title: 'National Day Self Driving',
 					desc: 'AI 驱动的国庆自驾行程规划',
 					tags: ['AI', '行程规划'],
