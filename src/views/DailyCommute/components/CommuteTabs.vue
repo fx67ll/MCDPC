@@ -44,6 +44,18 @@ export default {
 
 		.d-tab-icon {
 			font-size: 15px;
+			display: inline-block;
+			transition: transform 0.3s ease;
+		}
+
+		// 上班图标：hover 轻弹跳（工作活力）
+		&:hover .d-tab-icon {
+			animation: tab-bounce 0.5s ease;
+		}
+
+		// 下班图标：hover 左右轻晃（归家放松）
+		&:nth-child(2):hover .d-tab-icon {
+			animation: tab-sway 0.6s ease;
 		}
 
 		&.active {
@@ -59,6 +71,48 @@ export default {
 		color: #bababa;
 		white-space: nowrap;
 		flex-shrink: 0;
+	}
+}
+
+// 上班图标弹跳：向上轻跃再回落
+@keyframes tab-bounce {
+	0% {
+		transform: translateY(0);
+	}
+
+	40% {
+		transform: translateY(-4px);
+	}
+
+	60% {
+		transform: translateY(-4px);
+	}
+
+	100% {
+		transform: translateY(0);
+	}
+}
+
+// 下班图标左右晃：归家摇摆
+@keyframes tab-sway {
+	0% {
+		transform: rotate(0deg);
+	}
+
+	25% {
+		transform: rotate(-12deg);
+	}
+
+	50% {
+		transform: rotate(10deg);
+	}
+
+	75% {
+		transform: rotate(-6deg);
+	}
+
+	100% {
+		transform: rotate(0deg);
 	}
 }
 </style>

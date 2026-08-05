@@ -1,11 +1,13 @@
 <!-- 抵达信息卡：预计抵达终点时间 + 总耗时 + 拥堵（上下班通用，关键信息）
      纯抵达信息展示，不整合倒计时（倒计时由 CountdownCard 独立负责），不用迟到脉冲动效 -->
 <template>
-	<div class="arrive-card" v-if="data" :class="['cong-' + data.congestionCls, 'tab-' + tab, { compact: compact, mini: mini, copied: copied, 'is-late': isLate }]"
+	<div class="arrive-card" v-if="data"
+		:class="['cong-' + data.congestionCls, 'tab-' + tab, { compact: compact, mini: mini, copied: copied, 'is-late': isLate }]"
 		@click="onCardClick" :title="!mini ? '点击复制抵达时间' : ''">
 		<!-- mini 模式：仅抵达时间 -->
 		<div class="ac-mini" v-if="mini">
-			<span class="ac-mini-time" :class="{ loading: !data.endArriveText || data.endArriveText === '--:--' }">{{ data.endArriveText || '--:--' }}</span>
+			<span class="ac-mini-time" :class="{ loading: !data.endArriveText || data.endArriveText === '--:--' }">{{
+				data.endArriveText || '--:--' }}</span>
 			<span class="ac-mini-label">{{ tab === 'go' ? '到达' : '到家' }}</span>
 		</div>
 		<!-- 标准模式：抵达时间 + 总耗时/拥堵 + 副文案 -->
@@ -13,7 +15,8 @@
 			<div class="ac-main">
 				<div class="ac-arrive">
 					<span class="ac-arrive-label">{{ tab === 'go' ? '预计到达' : '预计到家' }}</span>
-					<span class="ac-arrive-time" :class="{ loading: !data.endArriveText || data.endArriveText === '--:--' }">
+					<span class="ac-arrive-time"
+						:class="{ loading: !data.endArriveText || data.endArriveText === '--:--' }">
 						{{ data.endArriveText || '--:--' }}
 					</span>
 				</div>
@@ -115,7 +118,7 @@ export default {
 			if (navigator.clipboard) {
 				navigator.clipboard.writeText(text).then(function () {
 					self.showCopied();
-				}).catch(function () {});
+				}).catch(function () { });
 			} else {
 				// 降级方案
 				var ta = document.createElement('textarea');
@@ -124,7 +127,7 @@ export default {
 				ta.style.opacity = '0';
 				document.body.appendChild(ta);
 				ta.select();
-				try { document.execCommand('copy'); self.showCopied(); } catch (e) {}
+				try { document.execCommand('copy'); self.showCopied(); } catch (e) { }
 				document.body.removeChild(ta);
 			}
 		},
@@ -253,6 +256,7 @@ export default {
 			}
 
 			.ac-cong {
+
 				// 拥堵语义色
 				&.cong-smooth {
 					color: #42b983;
@@ -288,31 +292,27 @@ export default {
 		--card-accent: #42b983;
 	}
 
-	// 上班迟到联动：静态红色背景 + 加强阴影（不脉冲，与倒计时卡片动效互补）
+	// 上班迟到联动：保持白底，仅左侧色条 + 抵达时间用红强调（与倒计时卡片同色系 #ef6b5a→#f08a7a）
+	// 其余文字维持正常深色，避免整片红；不脉冲与倒计时互补
 	&.is-late.tab-go {
-		background: linear-gradient(135deg, #ef6b5a, #f08a7a);
-		border-color: transparent;
-		box-shadow: 0 4px 18px rgba(239, 107, 90, 0.4);
+		--card-accent: #ef6b5a;
+		border-color: rgba(239, 107, 90, 0.25);
+		box-shadow: 0 4px 18px rgba(239, 107, 90, 0.3);
 
 		&::before {
-			background: #fff;
+			background: linear-gradient(180deg, #ef6b5a, #f08a7a);
 		}
 
 		.ac-arrive-label {
-			color: rgba(255, 255, 255, 0.85);
+			color: #95a5a6;
 		}
 
 		.ac-arrive-time {
-			color: #fff;
-		}
-
-		.ac-meta {
-			background: rgba(255, 255, 255, 0.22);
-			color: #fff;
+			color: #ef6b5a;
 		}
 
 		.ac-sub {
-			color: rgba(255, 255, 255, 0.95);
+			color: #7f8c8d;
 			font-weight: bold;
 		}
 	}
@@ -368,22 +368,34 @@ export default {
 	// 下班拥堵：深蓝底上叠加拥堵色调
 	&.cong-bad.tab-back {
 		background: linear-gradient(135deg, #3a2c3e, #5a3a3e);
-		.ac-arrive-time { color: #ef6b5a; }
+
+		.ac-arrive-time {
+			color: #ef6b5a;
+		}
 	}
 
 	&.cong-jam.tab-back {
 		background: linear-gradient(135deg, #3a3340, #5a4538);
-		.ac-arrive-time { color: #f08a4b; }
+
+		.ac-arrive-time {
+			color: #f08a4b;
+		}
 	}
 
 	&.cong-slow.tab-back {
 		background: linear-gradient(135deg, #2c3e50, #4a4a3e);
-		.ac-arrive-time { color: #f5a623; }
+
+		.ac-arrive-time {
+			color: #f5a623;
+		}
 	}
 
 	&.cong-unknown.tab-back {
 		background: linear-gradient(135deg, #3a3a40, #4a4a52);
-		.ac-arrive-time { color: #95a5a6; }
+
+		.ac-arrive-time {
+			color: #95a5a6;
+		}
 	}
 
 	// hover 交互：上浮 + 阴影增强（仅标准模式，非 mini）

@@ -61,8 +61,9 @@
 							</div>
 							<div class="web-last-time" v-if="lastRefreshTime">最后刷新 {{ lastRefreshTime }}</div>
 							<div class="web-collapse-btn" @click="togglePanel" title="收起面板">
-								<span>收起</span>
-								<svg class="collapse-arrow" viewBox="0 0 24 24" width="14" height="14">
+								<span>{{ panelCollapsed ? '展开' : '收起' }}</span>
+								<svg class="collapse-arrow" :class="{ collapsed: panelCollapsed }" viewBox="0 0 24 24"
+									width="14" height="14">
 									<path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.5"
 										stroke-linecap="round" stroke-linejoin="round" />
 								</svg>
@@ -94,7 +95,8 @@
 								<div class="fx-stats">
 									<div class="fx-stat">
 										<span class="fx-stat-label">驾车用时</span>
-										<span class="fx-stat-val" :class="{ loading: !fx67llCard.loaded }">{{ fx67llCard.durationText }}</span>
+										<span class="fx-stat-val" :class="{ loading: !fx67llCard.loaded }">{{
+											fx67llCard.durationText }}</span>
 									</div>
 									<div class="fx-stat">
 										<span class="fx-stat-label">预计抵达</span>
@@ -152,7 +154,8 @@
 				<div id="daily-map-container" ref="map"></div>
 				<div class="map-loading" v-show="isLoading">规划路线中...</div>
 				<!-- web 端天气浮动卡片（右上角，面板展开时直接显示，收起时需点 edge-bar 按钮打开） -->
-				<div class="web-weather-float" v-if="weatherLive && (!panelCollapsed || weatherFloatOpen)">
+				<div class="web-weather-float" v-if="weatherLive && (!panelCollapsed || weatherFloatOpen)"
+					:class="{ copied: weatherCopied }" @click="onWeatherCopy" title="点击复制天气信息">
 					<div class="wwf-main">
 						<span class="wwf-temp">{{ weatherLive.temperature }}°</span>
 						<div class="wwf-info">
@@ -161,6 +164,10 @@
 								weatherLive.windPower }}级</div>
 						</div>
 					</div>
+					<!-- 复制成功提示 -->
+					<transition name="wwf-copy-fade">
+						<div class="wwf-copied" v-if="weatherCopied">✓ 已复制天气</div>
+					</transition>
 					<div class="wwf-forecast" v-if="weatherForecast.length">
 						<div class="wwf-fc" v-for="(f, i) in weatherForecast" :key="i"
 							:style="{ animationDelay: i * 0.06 + 's' }">
@@ -170,7 +177,9 @@
 						</div>
 					</div>
 				</div>
-				<div class="nav-btn" v-if="currentRouteData && !panelCollapsed" @click="openNav">🧭 一键导航</div>
+				<div class="nav-btn" v-if="currentRouteData && !panelCollapsed" @click="openNav"><span
+						class="nav-icon">🧭</span>
+					一键导航</div>
 			</main>
 		</template>
 
@@ -222,7 +231,8 @@
 						<span class="m-fx-route">{{ fx67llCard.fromName }} → {{ fx67llCard.toName }}</span>
 					</div>
 					<div class="m-fx-body">
-						<div class="m-fx-dur" :class="{ loading: !fx67llCard.loaded }">{{ fx67llCard.durationText }}</div>
+						<div class="m-fx-dur" :class="{ loading: !fx67llCard.loaded }">{{ fx67llCard.durationText }}
+						</div>
 						<div class="m-fx-arrive" v-if="fx67llCard.loaded">抵达 {{ fx67llCard.arriveText }}</div>
 					</div>
 				</div>
@@ -330,7 +340,7 @@
 
 <script>
 import { loadAMap } from '@/utils/amapLoader.js';
-import { GO_ROUTES, BACK_ROUTES, CONGESTION, formatTime, fmtDuration, fmtDistance, autoTabByHour, enqueueAMapTask, getRoutePoints, getPoint, HIDDEN_LEG, FX67LL_INFO } from './commuteData.js';
+import { GO_ROUTES, BACK_ROUTES, CONGESTION, formatTime, fmtDuration, fmtDistance, autoTabByHour, enqueueAMapTask, clearAMapQueue, getRoutePoints, getPoint, HIDDEN_LEG, FX67LL_INFO } from './commuteData.js';
 import CommuteHeader from './components/CommuteHeader.vue';
 import CommuteTabs from './components/CommuteTabs.vue';
 import ArriveCard from './components/ArriveCard.vue';
@@ -381,9 +391,13 @@ export default {
 			autoRefreshTimer: null,
 			lastRefreshTime: '',
 			isAutoRefreshing: false, // 是否正在自动刷新（区别于手动）
+			// 刷新序列号：每次 refreshAll 递增，回调校验过期的直接丢弃，避免快速刷新时旧请求污染新结果
+			refreshToken: 0,
 			// web 端面板收起
 			panelCollapsed: false,
 			weatherFloatOpen: false, // 收起状态下天气浮动卡片是否打开
+			weatherCopied: false, // web 端天气浮层复制成功提示
+			weatherCopyTimer: null,
 			_tabByLocationDone: false, // 定位判断 tab 是否已执行（仅首次定位成功时切换）
 			_initRefreshed: false, // 初始化是否已触发首次刷新
 			tabSource: 'time', // tab 来源：time 时间判断 / location 定位判断
@@ -550,6 +564,8 @@ export default {
 	beforeDestroy() {
 		if (this.tickTimer) clearInterval(this.tickTimer);
 		this.stopAutoRefresh();
+		if (this._refreshDebounceTimer) { clearTimeout(this._refreshDebounceTimer); this._refreshDebounceTimer = null; }
+		if (this._drawRouteTimer) { clearTimeout(this._drawRouteTimer); this._drawRouteTimer = null; }
 		if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
 		if (this._docClickHandler) document.removeEventListener('click', this._docClickHandler);
 		if (this.map) {
@@ -583,17 +599,9 @@ export default {
 				self._locateFailed = false;
 				self.locateCurrent();
 				// 定位超时兜底：8 秒后如果定位还没回来，用时间逻辑确定 tab 并刷新
-				// 高德 Geolocation timeout 设为 8 秒，这里与之一致
+				// 与 locateCurrent 失败/异常兜底走同一个方法，保证逻辑统一
 				setTimeout(function () {
-					if (!self._initRefreshed) {
-						self._initRefreshed = true;
-						self._locateFailed = true;
-						if (!self.tab) {
-							self.tab = autoTabByHour(new Date());
-							self.theme = self.tab;
-						}
-						self.refreshAll();
-					}
+					self._locateFailedFallback();
 				}, 8000);
 				// 查询南京天气（独立于路线刷新，走缓存逻辑）
 				self.queryWeather();
@@ -605,6 +613,22 @@ export default {
 		refreshAll() {
 			var self = this;
 			if (!self.driving || !self.tab) return;
+			// 防抖：快速连续刷新时延迟 300ms，只处理最后一次，避免请求堆积卡顿
+			if (self._refreshDebounceTimer) {
+				clearTimeout(self._refreshDebounceTimer);
+			}
+			// 清空排队中未执行的高德任务（已发出的无法取消，但排队中的丢弃以减负）
+			clearAMapQueue();
+			self._refreshDebounceTimer = setTimeout(function () {
+				self._refreshDebounceTimer = null;
+				self._doRefresh();
+			}, 300);
+		},
+		_doRefresh() {
+			var self = this;
+			if (!self.driving || !self.tab) return;
+			// 生成新 token，过期刷新的回调校验后直接丢弃
+			var token = ++self.refreshToken;
 			self.isLoading = true;
 			self.errorMsg = '';
 			self.markRefreshTime();
@@ -612,6 +636,7 @@ export default {
 			self.routeResults = routes.map(function () { return null; });
 			var done = 0;
 			// 先规划非选中路线，最后规划选中路线（driving 会画最后一条到地图上，即选中路线）
+			// 非选中路线用 segDriving 只算耗时不画图；选中路线用 driving 画到地图，减少刷新中地图反复重画
 			var order = routes.map(function (_, i) { return i; });
 			order.sort(function (a, b) {
 				if (a === self.currentRoute) return 1; // 选中路线排最后
@@ -620,10 +645,12 @@ export default {
 			});
 			order.forEach(function (idx) {
 				var route = routes[idx];
-				// 每条路线独立 10 秒超时，超时只影响该条
+				// 选中路线用带 map 的 driving（画到地图）；其余用 segDriving 只算耗时，避免反复重画
+				var drivingInst = (idx === self.currentRoute) ? self.driving : self.segDriving;
 				var routeDone = false;
 				var routeTimer = setTimeout(function () {
 					if (routeDone) return;
+					if (token !== self.refreshToken) return; // 过期刷新，丢弃
 					routeDone = true;
 					self.$set(self.routeResults, idx, self.buildEmptyRoute(route, '该路线规划超时，请刷新重试'));
 					done++;
@@ -635,11 +662,12 @@ export default {
 				}, 10000);
 				self.planRoute(route, function (result) {
 					if (routeDone) return;
+					if (token !== self.refreshToken) return; // 过期刷新，丢弃
 					routeDone = true;
 					clearTimeout(routeTimer);
 					self.$set(self.routeResults, idx, result);
 					// 计算隐藏路段并入该路线结果（上班前置、下班后置，不在地图显示）
-					self.applyHiddenLeg(route, idx);
+					self.applyHiddenLeg(route, idx, token);
 					done++;
 					if (done === routes.length) {
 						self.isLoading = false;
@@ -648,7 +676,7 @@ export default {
 						// 刷新 fx67ll 专用时间信息
 						self.queryFx67llInfo();
 					}
-				});
+				}, drivingInst);
 			});
 		},
 		// 解析路线为结构化点：{ start, vias:[], end }
@@ -709,12 +737,14 @@ export default {
 			var pts = this.getRoutePts(route);
 			return pts.vias.map(function (v) { return v.name; });
 		},
-		planRoute(route, callback) {
+		planRoute(route, callback, drivingInst) {
 			var self = this;
 			try {
+				// drivingInst 缺省用带 map 的实例（会画到地图）；非选中路线传 segDriving 只算耗时、不画图
+				var driving = drivingInst || self.driving;
 				enqueueAMapTask(function (done) {
 					var pts = self.getRoutePts(route);
-					self.driving.search(
+					driving.search(
 						pts.start.lnglat,
 						pts.end.lnglat,
 						{ waypoints: self.getWaypoints(route) },
@@ -880,6 +910,17 @@ export default {
 		},
 		drawCurrentRoute() {
 			var self = this;
+			// 防抖：快速切换路线时合并为一次重绘，只重绘最后一次选中的路线
+			if (self._drawRouteTimer) {
+				clearTimeout(self._drawRouteTimer);
+			}
+			self._drawRouteTimer = setTimeout(function () {
+				self._drawRouteTimer = null;
+				self._doDrawCurrentRoute();
+			}, 150);
+		},
+		_doDrawCurrentRoute() {
+			var self = this;
 			// 不再重复 search（refreshAll 已用带 map 的 driving 规划并绘制路线）
 			// 切换路线时只需重新规划当前选中路线绘制到地图 + 画标注
 			var route = self.currentRoutes[self.currentRoute];
@@ -1022,6 +1063,45 @@ export default {
 				self.toast.show = false;
 			}, 3000);
 		},
+		// 通用复制：成功返回 true，失败返回 false
+		copyText(text) {
+			if (!text) return false;
+			if (navigator.clipboard) {
+				navigator.clipboard.writeText(text);
+				return true;
+			}
+			// 降级方案
+			try {
+				var ta = document.createElement('textarea');
+				ta.value = text;
+				ta.style.position = 'fixed';
+				ta.style.opacity = '0';
+				document.body.appendChild(ta);
+				ta.select();
+				document.execCommand('copy');
+				document.body.removeChild(ta);
+				return true;
+			} catch (e) {
+				return false;
+			}
+		},
+		// 点击天气浮层复制实时天气摘要
+		onWeatherCopy() {
+			var w = this.weatherLive;
+			if (!w) return;
+			var text = w.city + ' ' + w.weather + ' ' + w.temperature + '°，湿度' + w.humidity + '%，' + w.windDirection + '风' + w.windPower + '级';
+			if (this.copyText(text)) {
+				this.showWeatherCopied();
+			}
+		},
+		showWeatherCopied() {
+			var self = this;
+			this.weatherCopied = true;
+			if (this.weatherCopyTimer) clearTimeout(this.weatherCopyTimer);
+			this.weatherCopyTimer = setTimeout(function () {
+				self.weatherCopied = false;
+			}, 1500);
+		},
 		manualLocate() {
 			var self = this;
 			if (self._locating) return;
@@ -1052,14 +1132,27 @@ export default {
 				self.showToast('error', '定位异常：' + e.message);
 			}
 		},
+		// 定位失败/异常的统一兜底：用时间逻辑确定 tab 并触发首次刷新（已刷新过则跳过）
+		// locateCurrent 失败、异常，以及 initMap 的 8 秒超时兜底都走这里，保证逻辑统一
+		_locateFailedFallback() {
+			var self = this;
+			if (self._initRefreshed) return;
+			self._initRefreshed = true;
+			self._locateFailed = true;
+			if (!self.tab) {
+				self.tab = autoTabByHour(new Date());
+				self.theme = self.tab;
+			}
+			self.refreshAll();
+		},
 		// 自动获取当前定位（页面初始化时调用）
-		// 直接用高德 Geolocation（昨天能正常工作的方式）
+		// timeout 设 8 秒（与 initMap 兜底一致）；失败/异常立即兜底，不再空等 8 秒
 		locateCurrent() {
 			var self = this;
 			try {
 				var geolocation = new self.AMap.Geolocation({
 					enableHighAccuracy: true,
-					timeout: 10000,
+					timeout: 8000,
 					showButton: false,
 					showMarker: false,
 					showCircle: false,
@@ -1072,10 +1165,12 @@ export default {
 						self.onLocateSuccess([result.position.lng, result.position.lat]);
 					} else {
 						console.warn('[DailyCommute] 高德定位失败:', status, result);
+						self._locateFailedFallback();
 					}
 				});
 			} catch (e) {
 				console.warn('[DailyCommute] 高德定位异常:', e);
+				self._locateFailedFallback();
 			}
 		},
 		// 高德 Geolocation 定位（降级方案）
@@ -1310,9 +1405,11 @@ export default {
 		// 上班：hiddenDur 加到 segDurations[0]（起点→第一途经，即绿水湾→花神），总时长 +hiddenDur，所有点到达顺延
 		// 下班：hiddenDur 加到 segDurations[last]（末途经→终点，即花神→绿水湾），总时长 +hiddenDur，仅终点到达顺延
 		// 该方法在 parseRoute 完成正常结果后调用，叠加时间不影响通用分段逻辑
-		applyHiddenLeg(route, idx) {
+		applyHiddenLeg(route, idx, token) {
 			var self = this;
 			self.queryHiddenLeg(route, function (hiddenDur) {
+				// 过期刷新的回调直接丢弃
+				if (token !== undefined && token !== self.refreshToken) return;
 				var data = self.routeResults[idx];
 				if (!data || hiddenDur <= 0) return;
 				// 规划失败/超时的路线不补隐藏段
@@ -1758,8 +1855,17 @@ export default {
 	transition: all 0.2s ease;
 	z-index: 10;
 
+	.nav-icon {
+		display: inline-block;
+	}
+
 	&:hover {
 		transform: translateY(-2px);
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+	}
+
+	&:active {
+		transform: translateY(0);
 	}
 }
 
@@ -2012,11 +2118,26 @@ export default {
 
 		.collapse-arrow {
 			font-size: 14px;
+			transition: transform 0.3s ease;
 		}
 
+		// 收起态箭头反向（指向展开方向）
+		.collapse-arrow.collapsed {
+			transform: rotate(180deg);
+		}
+
+		// hover：箭头朝即将切换的方向轻推（展开态向左推=收起，收起态向右推=展开）
 		&:hover {
 			background: rgba(66, 185, 131, 0.1);
 			color: var(--accent, #42b983);
+
+			.collapse-arrow:not(.collapsed) {
+				transform: translateX(-3px);
+			}
+
+			.collapse-arrow.collapsed {
+				transform: rotate(180deg) translateX(-3px);
+			}
 		}
 	}
 }
@@ -2112,6 +2233,19 @@ export default {
 	border-radius: 12px;
 	padding: 12px 14px;
 	box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+	transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+	cursor: pointer;
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+		border-color: var(--accent, #42b983);
+	}
+
+	// 复制成功：边框转主题色提示
+	&.copied {
+		border-color: var(--accent, #42b983);
+	}
 
 	.wwf-main {
 		display: flex;
@@ -2174,6 +2308,30 @@ export default {
 		padding-top: 8px;
 		border-top: 1px dashed rgba(0, 0, 0, 0.06);
 	}
+
+	// 复制成功提示
+	.wwf-copied {
+		position: absolute;
+		top: 8px;
+		right: 12px;
+		font-size: 11px;
+		color: #fff;
+		background: var(--accent, #42b983);
+		padding: 3px 8px;
+		border-radius: 6px;
+		pointer-events: none;
+	}
+}
+
+// 天气复制提示过渡
+.wwf-copy-fade-enter-active,
+.wwf-copy-fade-leave-active {
+	transition: opacity 0.25s ease;
+}
+
+.wwf-copy-fade-enter,
+.wwf-copy-fade-leave-to {
+	opacity: 0;
 }
 
 @keyframes wwf-in {
@@ -2794,20 +2952,25 @@ export default {
 		font-size: 13px;
 		font-weight: bold;
 	}
+
 	.toast-text {
 		font-size: 14px;
 		font-weight: bold;
 		color: #fff;
 	}
+
 	&.toast-success {
 		background: rgba(66, 185, 131, 0.95);
+
 		.toast-icon {
 			background: #fff;
 			color: #42b983;
 		}
 	}
+
 	&.toast-error {
 		background: rgba(239, 107, 90, 0.95);
+
 		.toast-icon {
 			background: #fff;
 			color: #ef6b5a;

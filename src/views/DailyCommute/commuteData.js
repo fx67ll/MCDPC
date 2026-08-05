@@ -64,7 +64,9 @@ export const FX67LL_INFO = {
 // 按 index 建立查找表，供路线配置解析坐标
 const POINT_MAP = (function () {
   var m = {};
-  POINTS.forEach(function (p) { m[p.index] = p; });
+  POINTS.forEach(function (p) {
+    m[p.index] = p;
+  });
   return m;
 })();
 
@@ -87,8 +89,12 @@ const ROUTES = [
 ];
 
 // 上班/下班分组（引用 ROUTES 的 key，后台只需维护 ROUTES 与这里两组）
-export const GO_ROUTES = ROUTES.filter(function (r) { return r.key.indexOf('go-') === 0; });
-export const BACK_ROUTES = ROUTES.filter(function (r) { return r.key.indexOf('back-') === 0; });
+export const GO_ROUTES = ROUTES.filter(function (r) {
+  return r.key.indexOf('go-') === 0;
+});
+export const BACK_ROUTES = ROUTES.filter(function (r) {
+  return r.key.indexOf('back-') === 0;
+});
 
 // 解析路线为结构化点：{ start, vias:[], end }
 export function getRoutePoints(route) {
@@ -181,4 +187,12 @@ export function enqueueAMapTask(fn) {
   if (!_running) {
     _runNext();
   }
+}
+
+/**
+ * 清空排队中未执行的任务（已发出正在执行的无法取消）。
+ * 快速刷新时调用，丢弃旧请求的排队任务，减轻队列堆积卡顿。
+ */
+export function clearAMapQueue() {
+  _queue.length = 0;
 }
