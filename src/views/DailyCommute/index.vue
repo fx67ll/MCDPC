@@ -54,16 +54,18 @@
 							</div>
 						</div>
 						<div class="web-header-bottom">
-							<div class="web-refresh-btn" :class="{ loading: isLoading }" @click="refreshAll"
+							<div class="web-refresh-btn" :class="{ spinning: refreshSpinning }" @click="refreshAll"
 								title="手动刷新">
 								<span class="web-refresh-icon">↻</span>
 								<span class="web-refresh-text">刷新</span>
 							</div>
 							<div class="web-last-time" v-if="lastRefreshTime">最后刷新 {{ lastRefreshTime }}</div>
-							<div class="web-collapse-btn" @click="togglePanel" title="收起面板">
+							<div class="web-collapse-btn" @click="togglePanel" @mouseenter="onCollapseBtnEnter"
+								@mouseleave="onCollapseBtnLeave" title="收起面板">
 								<span>{{ panelCollapsed ? '展开' : '收起' }}</span>
-								<svg class="collapse-arrow" :class="{ collapsed: panelCollapsed }" viewBox="0 0 24 24"
-									width="14" height="14">
+								<svg class="collapse-arrow"
+									:class="{ collapsed: panelCollapsed, 'arrow-loop': collapseBtnHover, 'arrow-back': !collapseBtnHover && collapseArrowHasHovered }"
+									viewBox="0 0 24 24" width="14" height="14">
 									<path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.5"
 										stroke-linecap="round" stroke-linejoin="round" />
 								</svg>
@@ -105,15 +107,16 @@
 								</div>
 								<div class="fx-note">基于高德实时路径规划，仅供 fx67ll 参考</div>
 							</div>
-							<!-- 抵达信息卡：路线对比上方突出展示 -->
-							<arrive-card v-if="currentRouteData" :data="currentRouteData" :tab="tab" :now="now"
+							<!-- 抵达信息卡：路线对比上方突出展示（加载时先占位，数据就绪后原位填充，避免闪现） -->
+							<arrive-card :data="currentRouteData" :tab="tab" :now="now"
 								:best-duration="bestDuration"></arrive-card>
 							<route-compare :routes="routeResults" :current="currentRoute"
 								@select="switchRoute"></route-compare>
 							<alert-banner :text="closedInfo"></alert-banner>
-							<route-summary :data="currentRouteData"></route-summary>
-							<segment-duration :data="currentRouteData"></segment-duration>
-							<time-line :data="currentRouteData" :now="now" :show-remain="tab === 'go'"></time-line>
+							<route-summary class="card-appear" :data="currentRouteData"></route-summary>
+							<segment-duration class="card-appear" :data="currentRouteData"></segment-duration>
+							<time-line class="card-appear" :data="currentRouteData" :now="now"
+								:show-remain="tab === 'go'"></time-line>
 							<div class="d-error" v-if="errorMsg">{{ errorMsg }}</div>
 						</template>
 					</div>
@@ -124,7 +127,7 @@
 						<svg viewBox="0 0 24 24" width="16" height="16">
 							<path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" fill="none" stroke="currentColor"
 								stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-								:class="{ spinning: isLoading }" />
+								:class="{ spinning: refreshSpinning }" />
 						</svg>
 					</div>
 					<div class="edge-divider"></div>
@@ -138,8 +141,8 @@
 					<div class="edge-item" :class="{ active: congestionFloatOpen }"
 						@click="congestionFloatOpen = !congestionFloatOpen" title="路况概览">
 						<svg viewBox="0 0 24 24" width="16" height="16">
-							<path d="M4 20V10M10 20V4M16 20v-7M22 20V8" fill="none" stroke="currentColor"
-								stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+							<path d="M3 17l5-8 5 6 7-10" fill="none" stroke="currentColor" stroke-width="2"
+								stroke-linecap="round" stroke-linejoin="round" />
 						</svg>
 					</div>
 					<div class="edge-item" @click="openNav" title="一键导航">
@@ -251,7 +254,7 @@
 					</div>
 					<!-- 右侧：刷新 + 设置（SVG 图标，大小一致） -->
 					<div class="m-top-actions">
-						<span class="m-icon-btn" :class="{ loading: isLoading }" @click="refreshAll" title="刷新">
+						<span class="m-icon-btn" :class="{ spinning: refreshSpinning }" @click="refreshAll" title="刷新">
 							<svg viewBox="0 0 24 24" width="20" height="20">
 								<path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" fill="none" stroke="currentColor"
 									stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -423,6 +426,8 @@ export default {
 			currentRoute: 0,
 			routeResults: [],
 			isLoading: false,
+			// 刷新图标是否旋转：独立于 isLoading，保证至少转 1 圈且整圈停止，避免加载过快中途停
+			refreshSpinning: false,
 			errorMsg: '',
 			now: new Date(),
 			tickTimer: null,
@@ -444,6 +449,8 @@ export default {
 			segDurationsCache: {},
 			// web 端面板收起
 			panelCollapsed: false,
+			collapseBtnHover: false, // 收起按钮是否悬浮（驱动箭头循环/回滑动画）
+			collapseArrowHasHovered: false, // 是否悬浮过收起按钮（首次悬浮后才启用回滑，避免首屏闪动）
 			weatherFloatOpen: false, // 收起状态下天气浮动卡片是否打开
 			congestionFloatOpen: false, // 收起状态下路况概览浮动卡片是否打开
 			trafficStripHover: false, // web 端路况细条是否悬浮（展开详情）
@@ -588,6 +595,23 @@ export default {
 			};
 		}
 	},
+	watch: {
+		// 刷新图标旋转：加载开始即转；加载结束后保证至少转 1 圈且整圈停止，避免加载过快中途停
+		isLoading(val) {
+			if (val) {
+				// 加载开始：启动旋转并记录起点，取消任何待停止计时
+				this.refreshSpinning = true;
+				this._spinStartTime = Date.now();
+				if (this._spinStopTimer) {
+					clearTimeout(this._spinStopTimer);
+					this._spinStopTimer = null;
+				}
+			} else if (this.refreshSpinning) {
+				// 加载结束：按最少圈数与整圈边界延迟停止
+				this._scheduleSpinStop();
+			}
+		}
+	},
 	mounted() {
 		this.isMobile = window.innerWidth <= 960;
 		this.tab = null; // 初始未确定，等定位/时间判断后设置
@@ -690,6 +714,28 @@ export default {
 				self._refreshDebounceTimer = null;
 				self._doRefresh();
 			}, 300);
+		},
+		// 计算刷新图标停止时机：兜底至少转 1 圈且落在整圈边界（0deg），避免中途停
+		_scheduleSpinStop() {
+			var self = this;
+			if (this._spinStopTimer) {
+				clearTimeout(this._spinStopTimer);
+			}
+			var minDuration = 1000; // 兜底至少 1 圈（1s/圈）
+			var start = this._spinStartTime || Date.now();
+			var elapsed = Date.now() - start;
+			var delay;
+			if (elapsed < minDuration) {
+				// 不足最少圈数：补齐到 minDuration（1000 的整数倍，恰为整圈边界）
+				delay = minDuration - elapsed;
+			} else {
+				// 已超最少圈数：补到当前圈结束，落在 0deg
+				delay = (1000 - (elapsed % 1000)) % 1000;
+			}
+			this._spinStopTimer = setTimeout(function () {
+				self._spinStopTimer = null;
+				self.refreshSpinning = false;
+			}, delay);
 		},
 		_doRefresh() {
 			var self = this;
@@ -1697,6 +1743,14 @@ export default {
 			if (!this.panelCollapsed) {
 				this.weatherFloatOpen = false;
 			}
+		},
+		// 收起按钮悬浮：进入时启动箭头循环行进，离开时触发一次反向回滑
+		onCollapseBtnEnter() {
+			this.collapseBtnHover = true;
+			this.collapseArrowHasHovered = true;
+		},
+		onCollapseBtnLeave() {
+			this.collapseBtnHover = false;
 		}
 	}
 };
@@ -1989,7 +2043,7 @@ export default {
 			border-radius: 6px;
 			cursor: pointer;
 			color: var(--accent, #42b983);
-			transition: all 0.2s ease;
+			transition: background 0.2s ease, color 0.2s ease;
 
 			&:hover {
 				background: rgba(66, 185, 131, 0.12);
@@ -2148,7 +2202,8 @@ export default {
 			display: inline-block;
 		}
 
-		&.loading .web-refresh-icon {
+		// 加载中：持续旋转（由 refreshSpinning 驱动，保证最少圈数与整圈停止）
+		&.spinning .web-refresh-icon {
 			animation: spin 1s linear infinite;
 		}
 
@@ -2178,7 +2233,7 @@ export default {
 
 		.collapse-arrow {
 			font-size: 14px;
-			transition: transform 0.3s ease;
+			transition: transform 0.3s ease, opacity 0.2s ease;
 		}
 
 		// 收起态箭头反向（指向展开方向）
@@ -2186,18 +2241,20 @@ export default {
 			transform: rotate(180deg);
 		}
 
-		// hover：箭头朝即将切换的方向轻推（展开态向左推=收起，收起态向右推=展开）
+		// hover：按钮底色与字色
 		&:hover {
 			background: rgba(66, 185, 131, 0.1);
 			color: var(--accent, #42b983);
+		}
 
-			.collapse-arrow:not(.collapsed) {
-				transform: translateX(-3px);
-			}
+		// 悬浮时：箭头从右往左循环行进（按钮仅在面板展开时可见，箭头恒为非收起态）
+		.collapse-arrow.arrow-loop:not(.collapsed) {
+			animation: collapse-arrow-loop 1.6s ease-in-out infinite;
+		}
 
-			.collapse-arrow.collapsed {
-				transform: rotate(180deg) translateX(-3px);
-			}
+		// 离开悬浮后：箭头从左侧反向滑回原位，仅播放一次（首次悬浮过后才启用，避免首屏闪动）
+		.collapse-arrow.arrow-back:not(.collapsed) {
+			animation: collapse-arrow-back 0.5s ease-out;
 		}
 	}
 }
@@ -2769,7 +2826,7 @@ export default {
 					background: rgba(66, 185, 131, 0.1);
 				}
 
-				&.loading svg {
+				&.spinning svg {
 					animation: spin 1s linear infinite;
 				}
 			}
@@ -3049,6 +3106,52 @@ export default {
 	}
 }
 
+// web 面板收起按钮箭头：悬浮时从右往左循环行进，到最左侧缓停后淡出，再从右侧重新出发
+@keyframes collapse-arrow-loop {
+	0% {
+		transform: translateX(7px);
+		opacity: 0;
+	}
+
+	18% {
+		transform: translateX(3px);
+		opacity: 1;
+	}
+
+	62% {
+		transform: translateX(-4px);
+		opacity: 1;
+	}
+
+	82% {
+		transform: translateX(-4px);
+		opacity: 0;
+	}
+
+	100% {
+		transform: translateX(-4px);
+		opacity: 0;
+	}
+}
+
+// 收起按钮离开悬浮：箭头从左侧反向滑回原位（-4px → 0），起步淡入以掩盖位置切换，仅播放一次
+@keyframes collapse-arrow-back {
+	0% {
+		transform: translateX(-4px);
+		opacity: 0;
+	}
+
+	30% {
+		transform: translateX(-3px);
+		opacity: 1;
+	}
+
+	100% {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
 // 路况条行进小车：从底部起点移动到顶部终点，起步淡入、到终点淡出循环
 // 位移配合 cubic-bezier(0.7,0,0.3,1) 实现起步加速→匀速→刹车减速的速度感
 @keyframes wts-flow-up {
@@ -3320,6 +3423,25 @@ export default {
 			background: #fff;
 			color: #ef6b5a;
 		}
+	}
+}
+</style>
+
+<!-- 全局卡片进场动效：数据就绪后卡片淡入上浮，避免生硬闪现；fill-mode 默认 none 不锁定终态，不影响原有 hover 上浮 -->
+<style lang="less">
+.card-appear {
+	animation: card-appear 0.35s ease-out;
+}
+
+@keyframes card-appear {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
 	}
 }
 </style>

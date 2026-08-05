@@ -1,36 +1,45 @@
 <!-- 抵达信息卡：预计抵达终点时间 + 总耗时 + 拥堵（上下班通用，关键信息）
      纯抵达信息展示，不整合倒计时（倒计时由 CountdownCard 独立负责），不用迟到脉冲动效 -->
 <template>
-	<div class="arrive-card" v-if="data"
-		:class="['cong-' + data.congestionCls, 'tab-' + tab, { compact: compact, mini: mini, copied: copied, 'is-late': isLate }]"
-		@click="onCardClick" :title="!mini ? '点击复制抵达时间' : ''">
+	<div class="arrive-card" :class="cardClass" @click="onCardClick" :title="!mini ? '点击复制抵达时间' : ''">
 		<!-- mini 模式：仅抵达时间 -->
 		<div class="ac-mini" v-if="mini">
-			<span class="ac-mini-time" :class="{ loading: !data.endArriveText || data.endArriveText === '--:--' }">{{
-				data.endArriveText || '--:--' }}</span>
+			<span class="ac-mini-time" :class="{ loading: arriveLoading }">{{ arriveText }}</span>
 			<span class="ac-mini-label">{{ tab === 'go' ? '到达' : '到家' }}</span>
 		</div>
 		<!-- 标准模式：抵达时间 + 总耗时/拥堵 + 副文案 -->
 		<template v-else>
-			<div class="ac-main">
+			<!-- 加载占位：数据未就绪时显示骨架，与 fx67ll 卡一致的先占位再填充 -->
+			<div class="ac-main" v-if="!data">
 				<div class="ac-arrive">
 					<span class="ac-arrive-label">{{ tab === 'go' ? '预计到达' : '预计到家' }}</span>
-					<span class="ac-arrive-time"
-						:class="{ loading: !data.endArriveText || data.endArriveText === '--:--' }">
-						{{ data.endArriveText || '--:--' }}
-					</span>
+					<span class="ac-arrive-time loading">--:--</span>
 				</div>
 				<div class="ac-meta">
-					<span class="ac-dur">{{ data.durationText }}</span>
-					<span class="ac-sep">·</span>
-					<span class="ac-cong" :class="'cong-' + data.congestionCls">{{ data.congestionText }}</span>
+					<span class="ac-dur">计算中...</span>
 				</div>
 			</div>
-			<div class="ac-sub" v-if="subText">{{ subText }}</div>
-			<!-- 复制成功提示 -->
-			<transition name="ac-copy-fade">
-				<div class="ac-copied" v-if="copied">✓ 已复制抵达时间</div>
-			</transition>
+			<template v-else>
+				<div class="ac-main">
+					<div class="ac-arrive">
+						<span class="ac-arrive-label">{{ tab === 'go' ? '预计到达' : '预计到家' }}</span>
+						<span class="ac-arrive-time"
+							:class="{ loading: !data.endArriveText || data.endArriveText === '--:--' }">
+							{{ data.endArriveText || '--:--' }}
+						</span>
+					</div>
+					<div class="ac-meta">
+						<span class="ac-dur">{{ data.durationText }}</span>
+						<span class="ac-sep">·</span>
+						<span class="ac-cong" :class="'cong-' + data.congestionCls">{{ data.congestionText }}</span>
+					</div>
+				</div>
+				<div class="ac-sub" v-if="subText">{{ subText }}</div>
+				<!-- 复制成功提示 -->
+				<transition name="ac-copy-fade">
+					<div class="ac-copied" v-if="copied">✓ 已复制抵达时间</div>
+				</transition>
+			</template>
 		</template>
 	</div>
 </template>
@@ -57,6 +66,20 @@ export default {
 	computed: {
 		duration() {
 			return this.data ? this.data.duration : 0;
+		},
+		// 根节点类名：data 为 null 时用中性 cong-unknown 占位类，避免访问 data.congestionCls 报错
+		cardClass() {
+			if (!this.data) {
+				return ['cong-unknown', 'tab-' + this.tab, { compact: this.compact, mini: this.mini, copied: this.copied, loading: true }];
+			}
+			return ['cong-' + this.data.congestionCls, 'tab-' + this.tab, { compact: this.compact, mini: this.mini, copied: this.copied, 'is-late': this.isLate }];
+		},
+		// mini 模式抵达时间与 loading 态（兼容 data 为 null 的占位）
+		arriveLoading() {
+			return !this.data || !this.data.endArriveText || this.data.endArriveText === '--:--';
+		},
+		arriveText() {
+			return this.data && this.data.endArriveText ? this.data.endArriveText : '--:--';
 		},
 		// 上班迟到判定（与 CountdownCard 一致）：9~18 点且现在出发会晚于 9 点
 		isLate() {
