@@ -341,7 +341,6 @@
 <script>
 import { loadAMap } from '@/utils/amapLoader.js';
 import { GO_ROUTES, BACK_ROUTES, CONGESTION, formatTime, fmtDuration, fmtDistance, autoTabByHour, enqueueAMapTask, clearAMapQueue, getRoutePoints, getPoint, HIDDEN_LEG, FX67LL_INFO } from './commuteData.js';
-import CommuteHeader from './components/CommuteHeader.vue';
 import CommuteTabs from './components/CommuteTabs.vue';
 import ArriveCard from './components/ArriveCard.vue';
 import CountdownCard from './components/CountdownCard.vue';
@@ -349,14 +348,12 @@ import RouteCompare from './components/RouteCompare.vue';
 import AlertBanner from './components/AlertBanner.vue';
 import RouteSummary from './components/RouteSummary.vue';
 import TimeLine from './components/TimeLine.vue';
-import SegmentsBar from './components/SegmentsBar.vue';
 import SegmentDuration from './components/SegmentDuration.vue';
 import WeatherCard from './components/WeatherCard.vue';
 
 export default {
 	name: 'DailyCommute',
 	components: {
-		CommuteHeader,
 		CommuteTabs,
 		ArriveCard,
 		CountdownCard,
@@ -364,7 +361,6 @@ export default {
 		AlertBanner,
 		RouteSummary,
 		TimeLine,
-		SegmentsBar,
 		SegmentDuration,
 		WeatherCard
 	},
@@ -393,6 +389,10 @@ export default {
 			isAutoRefreshing: false, // 是否正在自动刷新（区别于手动）
 			// 刷新序列号：每次 refreshAll 递增，回调校验过期的直接丢弃，避免快速刷新时旧请求污染新结果
 			refreshToken: 0,
+			// 路线切换序列号：每次 drawCurrentRoute 递增，回调校验过期的直接丢弃，避免快速切路线时旧 search 回调叠加新结果
+			routeDrawToken: 0,
+			// segment 耗时缓存（秒）：key = startLnglat|endLnglat，按 tab 清空（上下班方向不同耗时不同）
+			segDurationsCache: {},
 			// web 端面板收起
 			panelCollapsed: false,
 			weatherFloatOpen: false, // 收起状态下天气浮动卡片是否打开
@@ -434,9 +434,6 @@ export default {
 			var auto = autoTabByHour(this.now);
 			if (this.tabSource === 'location') {
 				// 走定位判断逻辑
-				if (this.tab !== auto) {
-					return '按定位自动选择';
-				}
 				return '按定位自动选择';
 			}
 			// 走时间判断逻辑
@@ -619,6 +616,8 @@ export default {
 			}
 			// 清空排队中未执行的高德任务（已发出的无法取消，但排队中的丢弃以减负）
 			clearAMapQueue();
+			// 递增路线切换 token，使排队中的切路线 search 回调失效（避免与本次刷新结果叠加）
+			self.routeDrawToken++;
 			self._refreshDebounceTimer = setTimeout(function () {
 				self._refreshDebounceTimer = null;
 				self._doRefresh();
@@ -772,12 +771,10 @@ export default {
 			var closedInfo = '';
 			var totalTolls = 0; // 总过路费（元）
 			var tollRoads = []; // 收费路段名
-			var hasTmcs = false; // 调试：是否有 tmcs 拥堵数据
 			if (r.steps) {
 				r.steps.forEach(function (step) {
 					// 2.0 拥堵在 step.tmcs（每个 tmc 有 status + length），不是 step.tmc
 					if (step.tmcs && step.tmcs.length) {
-						hasTmcs = true;
 						step.tmcs.forEach(function (t) {
 							var st = t.status || 0;
 							var cong = CONGESTION[st] || CONGESTION[0];
@@ -813,12 +810,6 @@ export default {
 				totalTolls = r.tolls > 1000 ? r.tolls / 100 : r.tolls;
 			}
 			var tollText = totalTolls > 0 ? ('约 ' + totalTolls.toFixed(1) + ' 元') : '免费';
-			// 调试：打印是否有 tmcs 拥堵数据，以及第一条 step 的结构
-			console.log('[DailyCommute] hasTmcs=', hasTmcs, 'stepCount=', (r.steps || []).length, 'firstStep=', r.steps && r.steps[0] ? Object.keys(r.steps[0]) : 'none');
-			// 打印第一个 step 的 tmcs[0] 完整结构，确认拥堵字段名
-			if (r.steps && r.steps[0] && r.steps[0].tmcs && r.steps[0].tmcs[0]) {
-				console.log('[DailyCommute] firstTmc=', JSON.stringify(r.steps[0].tmcs[0]));
-			}
 			var tollRoadsText = tollRoads.length ? tollRoads.join('、') : '';
 			// 整体拥堵级别
 			var congestionLevel = 1;
@@ -914,12 +905,14 @@ export default {
 			if (self._drawRouteTimer) {
 				clearTimeout(self._drawRouteTimer);
 			}
+			// 递增 token，过期的 search 回调校验后直接丢弃，避免快速切路线时旧回调叠加新结果
+			var token = ++self.routeDrawToken;
 			self._drawRouteTimer = setTimeout(function () {
 				self._drawRouteTimer = null;
-				self._doDrawCurrentRoute();
+				self._doDrawCurrentRoute(token);
 			}, 150);
 		},
-		_doDrawCurrentRoute() {
+		_doDrawCurrentRoute(token) {
 			var self = this;
 			// 不再重复 search（refreshAll 已用带 map 的 driving 规划并绘制路线）
 			// 切换路线时只需重新规划当前选中路线绘制到地图 + 画标注
@@ -931,6 +924,8 @@ export default {
 				// 已有规划结果，直接画标注 + 分段
 				// 但需要 driving 重新画当前选中路线到地图（切换路线时需要）
 				enqueueAMapTask(function (done) {
+					// 排队期间若已切换路线/刷新，丢弃本次过期的画线请求
+					if (token !== self.routeDrawToken) { done(); return; }
 					var pts = self.getRoutePts(route);
 					self.driving.search(
 						pts.start.lnglat,
@@ -938,14 +933,16 @@ export default {
 						{ waypoints: self.getWaypoints(route) },
 						function (status, result) {
 							done();
+							// 过期回调直接丢弃，不画标注、不重设视野
+							if (token !== self.routeDrawToken) return;
 							self.drawMarkers(route, result);
-							self.restoreMapView();
 						}
 					);
 				});
 			} else {
 				// 无已有结果（首次或切换 tab），正常规划
 				enqueueAMapTask(function (done) {
+					if (token !== self.routeDrawToken) { done(); return; }
 					var pts = self.getRoutePts(route);
 					self.driving.search(
 						pts.start.lnglat,
@@ -953,6 +950,7 @@ export default {
 						{ waypoints: self.getWaypoints(route) },
 						function (status, result) {
 							done();
+							if (token !== self.routeDrawToken) return;
 							self.drawMarkers(route, result);
 						}
 					);
@@ -1141,7 +1139,6 @@ export default {
 			self._locateFailed = true;
 			if (!self.tab) {
 				self.tab = autoTabByHour(new Date());
-				self.theme = self.tab;
 			}
 			self.refreshAll();
 		},
@@ -1173,29 +1170,6 @@ export default {
 				self._locateFailedFallback();
 			}
 		},
-		// 高德 Geolocation 定位（降级方案）
-		locateByAMap() {
-			var self = this;
-			try {
-				var geolocation = new self.AMap.Geolocation({
-					enableHighAccuracy: true,
-					timeout: 8000,
-					showButton: false,
-					showMarker: false,
-					showCircle: false,
-					zoomToAccuracy: false,
-					panToLocation: false,
-					noGeoLocation: false
-				});
-				geolocation.getCurrentPosition(function (status, result) {
-					if (status === 'complete' && result && result.position) {
-						self.onLocateSuccess([result.position.lng, result.position.lat]);
-					}
-				});
-			} catch (e) {
-				// 定位失败忽略，不影响主流程
-			}
-		},
 		// 定位成功统一处理
 		onLocateSuccess(lnglat) {
 			var self = this;
@@ -1206,11 +1180,9 @@ export default {
 				var newTab = self.autoTabByLocation(self.currentLnglat);
 				if (newTab) {
 					self.tab = newTab;
-					self.theme = newTab;
 					self.tabSource = 'location';
 				} else {
 					self.tab = autoTabByHour(new Date());
-					self.theme = self.tab;
 				}
 				self._initRefreshed = true;
 				self.refreshAll();
@@ -1262,7 +1234,8 @@ export default {
 			self.markers.push(marker);
 		},
 		// 绘制起点/途经/终点标注 + 区段耗时标签
-		drawMarkers(route, searchResult) {
+		// drawToken 用于校验 segment 异步回调是否过期（切路线/刷新后旧回调不再画标注、不重设视野）
+		drawMarkers(route, searchResult, drawToken) {
 			var self = this;
 			self.clearMarkers();
 			if (!self.AMap || !self.map) return;
@@ -1302,20 +1275,31 @@ export default {
 				function onSegDone() {
 					segDone++;
 					if (segDone >= totalSegs) {
-						self.restoreMapView();
+						// 仅当前 drawToken 仍有效时重设视野，避免过期回调触发多余 setFitView
+						if (drawToken === undefined || drawToken === self.routeDrawToken) {
+							self.restoreMapView();
+						}
 					}
 				}
 				for (var si = 0; si < totalSegs; si++) {
 					var p1 = allPoints[si];
 					var p2 = allPoints[si + 1];
 					var mid = self.midLnglat(p1.lnglat, p2.lnglat);
-					var lab = self.makeTimeLabel(mid, '计算中...');
+					// 命中缓存时标签初始即显示真实耗时，避免"计算中→X 分钟"闪烁
+					var initKey = p1.lnglat[0] + ',' + p1.lnglat[1] + '|' + p2.lnglat[0] + ',' + p2.lnglat[1];
+					var initDur = self.segDurationsCache[initKey];
+					var lab = self.makeTimeLabel(mid, initDur !== undefined ? (fmtDuration(initDur) + ' → ' + p2.name) : '计算中...');
 					lab.setMap(self.map);
 					self.markers.push(lab);
 					segLabels.push(lab);
 					// 闭包保存段索引
 					(function (idx, labRef, p1Ref, p2Ref) {
 						self.planSegmentDuration(p1Ref.lnglat, p2Ref.lnglat, function (dur) {
+							// 过期回调（已切路线/刷新）不再更新标签与 segDurations
+							if (drawToken !== undefined && drawToken !== self.routeDrawToken) {
+								onSegDone();
+								return;
+							}
 							labRef.setContent(self.makeTimeLabelContent(fmtDuration(dur) + ' → ' + p2Ref.name));
 							// 更新 segDurations 数组对应段的实际耗时（按 from/to 名称匹配）
 							// 注意：若该段已叠加隐藏时间（hiddenApplied），需保留叠加量
@@ -1348,21 +1332,28 @@ export default {
 			}
 		},
 		// 规划单段路线，返回实际耗时（秒），用无 map 的 segDriving 不画图
+		// 按 start|end 坐标缓存，反复切回同一路线时直接命中，避免标签反复"计算中→X 分钟"闪烁
 		planSegmentDuration(start, end, callback) {
 			var self = this;
 			if (!self.segDriving) {
 				callback(0);
 				return;
 			}
+			var cacheKey = start[0] + ',' + start[1] + '|' + end[0] + ',' + end[1];
+			if (self.segDurationsCache[cacheKey] !== undefined) {
+				// 命中缓存：保持异步语义，避免调用方依赖同步返回
+				var cached = self.segDurationsCache[cacheKey];
+				setTimeout(function () { callback(cached); }, 0);
+				return;
+			}
 			try {
 				enqueueAMapTask(function (done) {
 					self.segDriving.search(start, end, function (status, result) {
 						done();
-						if (status === 'complete' && result && result.routes && result.routes.length) {
-							callback(result.routes[0].time || 0);
-						} else {
-							callback(0);
-						}
+						var dur = (status === 'complete' && result && result.routes && result.routes.length)
+							? (result.routes[0].time || 0) : 0;
+						self.$set(self.segDurationsCache, cacheKey, dur);
+						callback(dur);
 					});
 				});
 			} catch (e) {
@@ -1521,10 +1512,10 @@ export default {
 		switchTab(tab) {
 			if (this.tab === tab) return;
 			this.tab = tab;
-			this.theme = tab;
 			this.tabSource = 'time'; // 手动切换标记为时间逻辑
 			this.currentRoute = 0;
 			this.hiddenDurations = {}; // 切换 tab 清空隐藏路段缓存（上下班方向不同）
+			this.segDurationsCache = {}; // 切换 tab 清空分段耗时缓存（上下班方向不同耗时不同）
 			this.refreshAll();
 		},
 		switchRoute(i) {
