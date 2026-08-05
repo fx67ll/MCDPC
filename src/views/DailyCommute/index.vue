@@ -135,6 +135,13 @@
 								stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 						</svg>
 					</div>
+					<div class="edge-item" :class="{ active: congestionFloatOpen }"
+						@click="congestionFloatOpen = !congestionFloatOpen" title="路况概览">
+						<svg viewBox="0 0 24 24" width="16" height="16">
+							<path d="M4 20V10M10 20V4M16 20v-7M22 20V8" fill="none" stroke="currentColor"
+								stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+						</svg>
+					</div>
 					<div class="edge-item" @click="openNav" title="一键导航">
 						<svg viewBox="0 0 24 24" width="16" height="16">
 							<path d="M3 11l19-9-9 19-2-8-8-2z" fill="none" stroke="currentColor" stroke-width="2"
@@ -180,6 +187,44 @@
 				<div class="nav-btn" v-if="currentRouteData && !panelCollapsed" @click="openNav"><span
 						class="nav-icon">🧭</span>
 					一键导航</div>
+				<!-- web 端路况细条：贴地图左上角的垂直拥堵条（圆角胶囊 + 悬浮交互） -->
+				<div class="web-traffic-strip" :class="{ hover: trafficStripHover }"
+					@mouseenter="trafficStripHover = true" @mouseleave="trafficStripHover = false"
+					v-if="currentRouteData && currentRouteData.segments && currentRouteData.segments.length && (!panelCollapsed || congestionFloatOpen)">
+					<span class="wts-end">终</span>
+					<div class="wts-track">
+						<div class="wts-block" v-for="(s, i) in currentRouteData.segments" :key="i"
+							:class="'wts-' + s.level" :style="{ flex: s.weight }"
+							:title="s.name + ' · ' + s.statusText"></div>
+						<!-- 从起点(底)向终点(顶)循环移动的小车 -->
+						<div class="wts-flow">🚗</div>
+						<div class="wts-me" v-if="mePercent !== null" :style="{ bottom: mePercent + '%' }" title="我的位置">
+							<span class="wts-me-pin">📍</span>
+						</div>
+					</div>
+					<span class="wts-start">起</span>
+					<!-- 悬浮时展开的路况详情 -->
+					<transition name="wts-pop">
+						<div class="wts-detail" v-if="trafficStripHover">
+							<div class="wts-detail-row">
+								<span class="wts-detail-label">整体路况</span>
+								<span class="wts-detail-val" :class="'wts-level-' + trafficOverallLevel">{{
+									trafficOverallText
+								}}</span>
+							</div>
+							<div class="wts-detail-row" v-if="mePercent !== null">
+								<span class="wts-detail-label">已行驶</span>
+								<span class="wts-detail-val">{{ mePercent.toFixed(0) }}%</span>
+							</div>
+							<div class="wts-detail-legend">
+								<span class="wts-dl"><i class="wts-dl-dot wts-1"></i>畅通</span>
+								<span class="wts-dl"><i class="wts-dl-dot wts-2"></i>缓行</span>
+								<span class="wts-dl"><i class="wts-dl-dot wts-3"></i>拥堵</span>
+								<span class="wts-dl"><i class="wts-dl-dot wts-4"></i>严重拥堵</span>
+							</div>
+						</div>
+					</transition>
+				</div>
 			</main>
 		</template>
 
@@ -273,6 +318,8 @@
 					<route-compare :routes="routeResults" :current="currentRoute" @select="switchRoute"></route-compare>
 					<alert-banner :text="closedInfo"></alert-banner>
 					<route-summary :data="currentRouteData"></route-summary>
+					<congestion-bar :segments="currentRouteData ? currentRouteData.segments : []"
+						:me-percent="mePercent"></congestion-bar>
 					<segment-duration :data="currentRouteData"></segment-duration>
 					<time-line :data="currentRouteData" :now="now" :show-remain="tab === 'go'"></time-line>
 					<div class="d-error" v-if="errorMsg">{{ errorMsg }}</div>
@@ -340,7 +387,7 @@
 
 <script>
 import { loadAMap } from '@/utils/amapLoader.js';
-import { GO_ROUTES, BACK_ROUTES, CONGESTION, formatTime, fmtDuration, fmtDistance, autoTabByHour, enqueueAMapTask, clearAMapQueue, getRoutePoints, getPoint, HIDDEN_LEG, FX67LL_INFO } from './commuteData.js';
+import { GO_ROUTES, BACK_ROUTES, CONGESTION, parseCongestion, overallCongestionLevel, formatTime, fmtDuration, fmtDistance, autoTabByHour, enqueueAMapTask, clearAMapQueue, getRoutePoints, getPoint, HIDDEN_LEG, FX67LL_INFO, locateOnRoute } from './commuteData.js';
 import CommuteTabs from './components/CommuteTabs.vue';
 import ArriveCard from './components/ArriveCard.vue';
 import CountdownCard from './components/CountdownCard.vue';
@@ -349,6 +396,7 @@ import AlertBanner from './components/AlertBanner.vue';
 import RouteSummary from './components/RouteSummary.vue';
 import TimeLine from './components/TimeLine.vue';
 import SegmentDuration from './components/SegmentDuration.vue';
+import CongestionBar from './components/CongestionBar.vue';
 import WeatherCard from './components/WeatherCard.vue';
 
 export default {
@@ -362,6 +410,7 @@ export default {
 		RouteSummary,
 		TimeLine,
 		SegmentDuration,
+		CongestionBar,
 		WeatherCard
 	},
 	data() {
@@ -396,6 +445,8 @@ export default {
 			// web 端面板收起
 			panelCollapsed: false,
 			weatherFloatOpen: false, // 收起状态下天气浮动卡片是否打开
+			congestionFloatOpen: false, // 收起状态下路况概览浮动卡片是否打开
+			trafficStripHover: false, // web 端路况细条是否悬浮（展开详情）
 			weatherCopied: false, // web 端天气浮层复制成功提示
 			weatherCopyTimer: null,
 			_tabByLocationDone: false, // 定位判断 tab 是否已执行（仅首次定位成功时切换）
@@ -428,6 +479,20 @@ export default {
 		},
 		currentRouteData() {
 			return this.routeResults[this.currentRoute] || null;
+		},
+		// "我"在当前路线上的进度百分比（0~100），null 表示无定位或不在路线上
+		// web 路况细条与移动端路况卡片共用
+		mePercent() {
+			if (!this.currentRouteData || !this.currentRouteData.rawRoute) return null;
+			return locateOnRoute(this.currentLnglat, this.currentRouteData.rawRoute);
+		},
+		// 整体路况等级与文字（web 路况细条悬浮详情用）
+		trafficOverallLevel() {
+			return this.currentRouteData ? overallCongestionLevel(this.currentRouteData.segments) : 0;
+		},
+		trafficOverallText() {
+			var map = { 0: '未知', 1: '整体畅通', 2: '局部缓行', 3: '多处拥堵', 4: '严重拥堵' };
+			return map[this.trafficOverallLevel] || '未知';
 		},
 		tabTip() {
 			if (!this.tab) return '正在判断...';
@@ -584,12 +649,15 @@ export default {
 					map: self.map,
 					policy: (AMap.DrivingPolicy && AMap.DrivingPolicy.LEAST_TIME) || 'LEAST_TIME',
 					hideMarkers: true,
-					showTraffic: true
+					showTraffic: true,
+					// extensions: 'all' 返回完整路况字段（steps[].tmcs 拥堵分级），默认 base 不含 tmcs
+					extensions: 'all'
 				});
 				// 不带 map 的 Driving 实例，用于分段规划只算耗时（不画图，不覆盖主路线）
 				self.segDriving = new AMap.Driving({
 					policy: (AMap.DrivingPolicy && AMap.DrivingPolicy.LEAST_TIME) || 'LEAST_TIME',
-					hideMarkers: true
+					hideMarkers: true,
+					extensions: 'all'
 				});
 				// 获取当前位置并标注（定位成功后由回调触发首次 refreshAll，定位超时则用时间逻辑兜底）
 				self._initRefreshed = false;
@@ -776,15 +844,16 @@ export default {
 					// 2.0 拥堵在 step.tmcs（每个 tmc 有 status + length），不是 step.tmc
 					if (step.tmcs && step.tmcs.length) {
 						step.tmcs.forEach(function (t) {
-							var st = t.status || 0;
-							var cong = CONGESTION[st] || CONGESTION[0];
+							// 高德 2.0 tmcs[].status 返回中文拥堵描述字符串，parseCongestion 兼容字符串与数字
+							// tmcs 路段长度字段为 distance（非 length）
+							var cong = parseCongestion(t.status);
 							segments.push({
 								name: step.road || step.instruction || '路段',
 								level: cong.level,
 								statusText: cong.text,
-								weight: Math.max(1, (t.length || 100) / 100)
+								weight: Math.max(1, (t.distance || 100) / 100)
 							});
-							if (st >= 3) jamCount++;
+							if (cong.level >= 3) jamCount++;
 						});
 					} else {
 						// 无 tmcs 时用 step 整体作为一段（status 未知）
@@ -2325,6 +2394,269 @@ export default {
 	opacity: 0;
 }
 
+// web 端路况细条：贴地图右侧居中的垂直拥堵条（细窄圆角 + 悬浮展开详情）
+.web-traffic-strip {
+	position: absolute;
+	right: 16px;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 10;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 5px;
+	padding: 7px 5px;
+	background: rgba(255, 255, 255, 0.82);
+	backdrop-filter: blur(8px);
+	border: 1px solid rgba(0, 0, 0, 0.06);
+	border-radius: 16px;
+	box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+	transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+
+	// 悬浮时轻微放大 + 主题色边框 + 背景更实
+	&.hover {
+		transform: translateY(-50%) scale(1.08);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+		border-color: var(--accent, #42b983);
+		background: rgba(255, 255, 255, 0.95);
+
+		// 悬浮时小车显示并循环行进
+		// 缓动曲线 cubic-bezier(0.7,0,0.3,1)：起步慢加速、中段最快、末段急减速到停，模拟汽车起步→加速→刹车
+		.wts-flow {
+			animation: wts-flow-up 4s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+		}
+	}
+
+	.wts-end,
+	.wts-start {
+		font-size: 10px;
+		font-weight: bold;
+		color: #2c3e50;
+		line-height: 1;
+		flex-shrink: 0;
+		width: 16px;
+		height: 16px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: rgba(0, 0, 0, 0.04);
+		transition: color 0.25s ease, background 0.25s ease;
+	}
+
+	// 悬浮时起终点转主题色
+	&.hover .wts-end,
+	&.hover .wts-start {
+		color: var(--accent, #42b983);
+		background: var(--accent-bg, rgba(66, 185, 131, 0.1));
+	}
+
+	.wts-track {
+		position: relative;
+		display: flex;
+		flex-direction: column-reverse;
+		// 起点在底、终点在顶
+		width: 10px;
+		height: 230px;
+		border-radius: 6px;
+		overflow: visible;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+
+		.wts-block {
+			width: 100%;
+			transition: filter 0.2s ease;
+
+			&:first-child {
+				border-radius: 0 0 6px 6px;
+			}
+
+			&:last-child {
+				border-radius: 6px 6px 0 0;
+			}
+
+			// 悬浮时单段高亮
+			&:hover {
+				filter: brightness(1.15);
+			}
+		}
+
+		.wts-0 {
+			background: #c0c0c0;
+		}
+
+		.wts-1 {
+			background: #42b983;
+		}
+
+		.wts-2 {
+			background: #f5af19;
+		}
+
+		.wts-3 {
+			background: #fc8d59;
+		}
+
+		.wts-4 {
+			background: #d73027;
+		}
+
+		// 从起点(底)向终点(顶)移动的小车：默认隐藏，悬浮时显示并播放起步加速→刹车减速动画
+		.wts-flow {
+			position: absolute;
+			left: 50%;
+			bottom: 0;
+			transform: translateX(-50%);
+			z-index: 3;
+			pointer-events: none;
+			font-size: 13px;
+			line-height: 1;
+			filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+			opacity: 0;
+		}
+
+		// "我"的位置标记（横向定位线 + 左侧 📍，因条在右侧故针朝左）
+		.wts-me {
+			position: absolute;
+			left: -4px;
+			right: -4px;
+			transform: translateY(50%);
+			z-index: 2;
+			pointer-events: none;
+			transition: bottom 0.3s ease;
+
+			.wts-me-pin {
+				position: absolute;
+				top: 50%;
+				left: -15px;
+				transform: translateY(-50%);
+				font-size: 11px;
+				line-height: 1;
+				filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+			}
+
+			&::after {
+				content: '';
+				position: absolute;
+				top: 50%;
+				left: 0;
+				right: 0;
+				height: 2px;
+				background: #fff;
+				border-radius: 1px;
+				transform: translateY(-50%);
+				box-shadow: 0 0 0 1px rgba(44, 62, 80, 0.4);
+			}
+		}
+	}
+
+	// 悬浮展开的路况详情卡片（左侧弹出，因条在右侧）
+	.wts-detail {
+		position: absolute;
+		right: calc(100% + 12px);
+		top: 50%;
+		transform: translateY(-50%);
+		min-width: 150px;
+		padding: 12px 14px;
+		background: rgba(255, 255, 255, 0.96);
+		backdrop-filter: blur(10px);
+		border: 1px solid rgba(0, 0, 0, 0.08);
+		border-radius: 14px;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+		pointer-events: none;
+
+		.wts-detail-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			margin-bottom: 8px;
+
+			.wts-detail-label {
+				font-size: 11px;
+				color: #bababa;
+			}
+
+			.wts-detail-val {
+				font-size: 12px;
+				font-weight: bold;
+				color: #2c3e50;
+
+				&.wts-level-0 {
+					color: #bababa;
+				}
+
+				&.wts-level-1 {
+					color: #42b983;
+				}
+
+				&.wts-level-2 {
+					color: #d99500;
+				}
+
+				&.wts-level-3 {
+					color: #fc8d59;
+				}
+
+				&.wts-level-4 {
+					color: #d73027;
+				}
+			}
+		}
+
+		.wts-detail-legend {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px 10px;
+			padding-top: 8px;
+			border-top: 1px dashed rgba(0, 0, 0, 0.06);
+
+			.wts-dl {
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
+				font-size: 10px;
+				color: #95a5a6;
+				white-space: nowrap;
+
+				.wts-dl-dot {
+					width: 8px;
+					height: 8px;
+					border-radius: 2px;
+					display: inline-block;
+
+					&.wts-1 {
+						background: #42b983;
+					}
+
+					&.wts-2 {
+						background: #f5af19;
+					}
+
+					&.wts-3 {
+						background: #fc8d59;
+					}
+
+					&.wts-4 {
+						background: #d73027;
+					}
+				}
+			}
+		}
+	}
+}
+
+// 路况详情弹出过渡
+.wts-pop-enter-active,
+.wts-pop-leave-active {
+	transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.wts-pop-enter,
+.wts-pop-leave-to {
+	opacity: 0;
+	transform: translateY(-50%) translateX(6px);
+}
+
+
 @keyframes wwf-in {
 	from {
 		opacity: 0;
@@ -2714,6 +3046,28 @@ export default {
 
 	to {
 		transform: rotate(360deg);
+	}
+}
+
+// 路况条行进小车：从底部起点移动到顶部终点，起步淡入、到终点淡出循环
+// 位移配合 cubic-bezier(0.7,0,0.3,1) 实现起步加速→匀速→刹车减速的速度感
+@keyframes wts-flow-up {
+	0% {
+		bottom: 0%;
+		opacity: 0;
+	}
+
+	12% {
+		opacity: 0.95;
+	}
+
+	88% {
+		opacity: 0.95;
+	}
+
+	100% {
+		bottom: 100%;
+		opacity: 0;
 	}
 }
 

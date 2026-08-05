@@ -121,6 +121,30 @@ export const CONGESTION = {
   4: { level: 4, text: '严重拥堵', cls: 'bad' },
 };
 
+// 高德 2.0 tmcs[].status 直接返回中文拥堵描述字符串（"畅通"/"缓行"/"拥堵"/"严重拥堵"/"未知"）
+// 旧版返回数字 0~4。这里统一兼容两种格式，返回拥堵配置对象。
+var CONGESTION_TEXT_MAP = {
+  '未知': CONGESTION[0],
+  '畅通': CONGESTION[1],
+  '缓行': CONGESTION[2],
+  '拥堵': CONGESTION[3],
+  '严重拥堵': CONGESTION[4],
+  // 兼容"严重拥堵"的别称
+  '严重': CONGESTION[4],
+};
+export function parseCongestion(status) {
+  if (status === undefined || status === null) return CONGESTION[0];
+  // 数字格式（0~4）
+  if (typeof status === 'number') return CONGESTION[status] || CONGESTION[0];
+  // 字符串格式：可能是中文描述，也可能是数字字符串
+  if (typeof status === 'string') {
+    if (CONGESTION_TEXT_MAP[status]) return CONGESTION_TEXT_MAP[status];
+    var n = Number(status);
+    if (!isNaN(n) && CONGESTION[n]) return CONGESTION[n];
+  }
+  return CONGESTION[0];
+}
+
 // 时间格式化工具
 export function formatTime(d) {
   var h = d.getHours();
@@ -147,6 +171,62 @@ export function fmtDistance(meter) {
 export function autoTabByHour(d) {
   var h = d.getHours();
   return h < 12 ? 'go' : 'back';
+}
+
+// 将定位点投影到路线，计算其在整条路线上的进度百分比（0~100）
+// 遍历 rawRoute.steps[].path 累计距离，找离定位点最近的路径点，按累计距离占比返回百分比
+// 定位点离路线过远（>1km）返回 null，表示不在路线上
+// 供路况条"我"标记定位使用，web 横条与移动端卡片共用
+export function locateOnRoute(currentLnglat, rawRoute) {
+  if (!currentLnglat || !rawRoute || !rawRoute.steps || !rawRoute.steps.length) return null;
+  var pts = [];
+  var cum = 0;
+  var prev = null;
+  rawRoute.steps.forEach(function (step) {
+    if (!step.path || !step.path.length) return;
+    step.path.forEach(function (p) {
+      var lng = p[0] !== undefined ? p[0] : p.lng;
+      var lat = p[1] !== undefined ? p[1] : p.lat;
+      if (prev) {
+        cum += Math.sqrt((lng - prev[0]) * (lng - prev[0]) + (lat - prev[1]) * (lat - prev[1]));
+      }
+      pts.push({ lng: lng, lat: lat, cum: cum });
+      prev = [lng, lat];
+    });
+  });
+  if (!pts.length) return null;
+  var total = pts[pts.length - 1].cum;
+  if (total <= 0) return null;
+  var best = null;
+  var bestDist = Infinity;
+  pts.forEach(function (p) {
+    var dx = p.lng - currentLnglat[0];
+    var dy = p.lat - currentLnglat[1];
+    var d = dx * dx + dy * dy;
+    if (d < bestDist) {
+      bestDist = d;
+      best = p;
+    }
+  });
+  if (!best) return null;
+  // 距离过远视为不在路线上（阈值约 1km，经纬度平方约 0.0001）
+  if (bestDist > 0.0001) return null;
+  return Math.max(0, Math.min(100, (best.cum / total) * 100));
+}
+
+// 整体拥堵等级（0~4）：与 parseRoute 的 jamRatio 逻辑一致
+// segments 为 parseRoute 产出的分段拥堵数组，level>=3 计为拥堵段
+export function overallCongestionLevel(segments) {
+  if (!segments || !segments.length) return 0;
+  var jam = 0;
+  segments.forEach(function (s) {
+    if (s.level >= 3) jam++;
+  });
+  var ratio = jam / segments.length;
+  if (ratio > 0.5) return 4;
+  if (ratio > 0.3) return 3;
+  if (ratio > 0.1) return 2;
+  return 1;
 }
 
 // ===== 高德 API 请求队列（规避 1 秒并发不超过 3 的限制）=====
