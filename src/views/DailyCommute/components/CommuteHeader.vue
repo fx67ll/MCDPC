@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import { formatTime } from '../commuteData.js';
+import { formatTime } from '@/utils/commuteUtils.js';;
 export default {
 	name: 'CommuteHeader',
 	props: {

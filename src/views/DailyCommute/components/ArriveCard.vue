@@ -45,7 +45,7 @@
 </template>
 
 <script>
-import { fmtDuration } from '../commuteData.js';
+import { fmtDuration } from '@/utils/commuteUtils.js';;
 export default {
 	name: 'ArriveCard',
 	props: {

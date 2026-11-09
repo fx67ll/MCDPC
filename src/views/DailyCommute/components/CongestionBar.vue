@@ -26,7 +26,7 @@
 </template>
 
 <script>
-import { overallCongestionLevel } from '../commuteData.js';
+import { overallCongestionLevel } from '@/utils/commuteUtils.js';;
 export default {
 	name: 'CongestionBar',
 	props: {

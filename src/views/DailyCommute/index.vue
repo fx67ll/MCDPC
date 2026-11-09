@@ -1,15 +1,16 @@
 <!-- @name: DailyCommute -->
 <!-- @author: fx67ll -->
-<!-- @version: 1.2.0-->
+<!-- @version: 1.2.1-->
 <!-- @description：每日通勤用时查看页。上班/下班双面板，按当前时间自动切换。
                 2 条路线（起始点不同），途经南京花神科技广场东门，终点 BeanStar 比星咖啡(江宁纳科东店)。
                 展示路线耗时、抵达途经点/终点预估时间点、上班距 9 点倒计时、路段拥堵红绿、道路封闭提示、
                 路线对比推荐、出发建议、一键导航。使用高德 AMap.Driving 路径规划。移动端优先，web/移动风格一致。
                 v1.2.0：隐藏路段耗时计算独立于通用分段逻辑，仅叠加总时长与首/末段，不新增分段行；
-                fx67ll 专用时间信息卡（江浦→花神科技园东门驾车用时），web 端路线对比上方、移动端左上角悬浮。-->
+                fx67ll 专用时间信息卡（江浦→花神科技园东门驾车用时），web 端路线对比上方、移动端左上角悬浮。
+                v1.2.1：支持 scene 场景标识（daily 私人隐藏路由 / commute 公开路由），为后续按场景区分起讫点预留。-->
 
 <template>
-	<div class="daily" :class="['theme-' + theme, { 'is-mobile': isMobile }]">
+	<div class="daily" :class="['theme-' + theme, 'scene-' + scene, { 'is-mobile': isMobile }]">
 		<!-- ===== Web 端：左右分栏（左侧悬浮可收起） ===== -->
 		<template v-if="!isMobile">
 			<aside class="web-side" :class="{ collapsed: panelCollapsed }">
@@ -84,7 +85,7 @@
 								:duration="currentRouteData ? currentRouteData.duration : 0"
 								:best-duration="bestDuration"></countdown-card>
 							<!-- fx67ll 专用时间信息卡 -->
-							<div class="fx-card" v-if="tab">
+							<div class="fx-card" v-if="tab && fx67llEnabled">
 								<div class="fx-head">
 									<span class="fx-badge">⏱ fx67ll</span>
 									<span class="fx-title">专用时间信息</span>
@@ -273,7 +274,7 @@
 					</div>
 				</div>
 				<!-- fx67ll 专用时间信息浮卡（左上角，上班时位于倒计时卡片上方） -->
-				<div class="m-fx-card" v-if="tab" :class="{ loaded: fx67llCard.loaded }">
+				<div class="m-fx-card" v-if="tab && fx67llEnabled" :class="{ loaded: fx67llCard.loaded }">
 					<div class="m-fx-head">
 						<span class="m-fx-badge">⏱ fx67ll</span>
 						<span class="m-fx-route">{{ fx67llCard.fromName }} → {{ fx67llCard.toName }}</span>
@@ -314,7 +315,8 @@
 						</span>
 					</div>
 					<div class="handle-info" v-else>
-						<span class="handle-title">{{ tab ? '路线规划中...' : '正在获取定位信息...' }}</span>
+						<span class="handle-title">{{ tab && !currentRoutes.length ? '暂无通勤路线配置' : (tab ? '路线规划中...' :
+							'正在获取定位信息...') }}</span>
 					</div>
 				</div>
 				<div class="m-sheet-body" v-if="tab">
@@ -390,7 +392,9 @@
 
 <script>
 import { loadAMap } from '@/utils/amapLoader.js';
-import { GO_ROUTES, BACK_ROUTES, CONGESTION, parseCongestion, overallCongestionLevel, formatTime, fmtDuration, fmtDistance, autoTabByHour, enqueueAMapTask, clearAMapQueue, getRoutePoints, getPoint, HIDDEN_LEG, FX67LL_INFO, locateOnRoute } from './commuteData.js';
+import { DAILY_SCENE } from './dailyConfig.js';
+import { COMMUTE_SCENE } from './commuteConfig.js';
+import { CONGESTION, parseCongestion, overallCongestionLevel, formatTime, fmtDuration, fmtDistance, autoTabByHour, enqueueAMapTask, clearAMapQueue, locateOnRoute } from '@/utils/commuteUtils.js';
 import CommuteTabs from './components/CommuteTabs.vue';
 import ArriveCard from './components/ArriveCard.vue';
 import CountdownCard from './components/CountdownCard.vue';
@@ -415,6 +419,10 @@ export default {
 		SegmentDuration,
 		CongestionBar,
 		WeatherCard
+	},
+	props: {
+		// 场景标识：daily 私人隐藏路由 / commute 公开路由，为后续按场景区分起讫点预留
+		scene: { type: String, default: 'daily' }
 	},
 	data() {
 		return {
@@ -480,9 +488,19 @@ export default {
 		theme() {
 			return this.tab;
 		},
+		// 当前场景定位配置：daily / commute 各自独立，互不影响
+		sceneConfig() {
+			return this.scene === 'commute' ? COMMUTE_SCENE : DAILY_SCENE;
+		},
+		// 专用时间信息卡是否可用：配置缺失时隐藏，避免一直显示"计算中"
+		fx67llEnabled() {
+			var info = this.sceneConfig.info;
+			return !!(info && info.fromLnglat && this.sceneConfig.getPoint(info.toPointIndex));
+		},
 		currentRoutes() {
 			if (!this.tab) return [];
-			return this.tab === 'go' ? GO_ROUTES : BACK_ROUTES;
+			var cfg = this.sceneConfig;
+			return (this.tab === 'go' ? cfg.goRoutes : cfg.backRoutes) || [];
 		},
 		currentRouteData() {
 			return this.routeResults[this.currentRoute] || null;
@@ -582,13 +600,15 @@ export default {
 		},
 		// fx67ll 专用时间信息卡片数据
 		fx67llCard() {
-			var toPoint = getPoint(FX67LL_INFO.toPointIndex);
+			var cfg = this.sceneConfig;
+			var info = cfg.info || {};
+			var toPoint = cfg.getPoint(info.toPointIndex);
 			var toName = toPoint ? toPoint.name : '';
-			// 上班：江浦 → 花神；下班：花神 → 江浦（方向随 tab 翻转）
+			// 上班：起点 → 终点；下班：终点 → 起点（方向随 tab 翻转）
 			var isGo = this.tab === 'go';
 			return {
-				fromName: isGo ? FX67LL_INFO.fromName : toName,
-				toName: isGo ? toName : FX67LL_INFO.fromName,
+				fromName: isGo ? (info.fromName || '') : toName,
+				toName: isGo ? toName : (info.fromName || ''),
 				durationText: this.fx67llLoaded ? fmtDuration(this.fx67llDuration) : '计算中...',
 				arriveText: this.fx67llLoaded ? this.arriveText(this.fx67llDuration) : '--:--',
 				loaded: this.fx67llLoaded
@@ -746,6 +766,13 @@ export default {
 			self.errorMsg = '';
 			self.markRefreshTime();
 			var routes = self.currentRoutes;
+			// 异常兜底：当前时段未配置路线时直接提示，避免加载态卡死
+			if (!routes.length) {
+				self.routeResults = [];
+				self.isLoading = false;
+				self.errorMsg = '当前通勤路线配置准备中，暂时无法获取路线';
+				return;
+			}
 			self.routeResults = routes.map(function () { return null; });
 			var done = 0;
 			// 先规划非选中路线，最后规划选中路线（driving 会画最后一条到地图上，即选中路线）
@@ -795,7 +822,7 @@ export default {
 		// 解析路线为结构化点：{ start, vias:[], end }
 		// 通用取点：start=起点，end=终点，vias=途经点数组（数量不限）
 		getRoutePts(route) {
-			return getRoutePoints(route);
+			return this.sceneConfig.getRoutePoints(route);
 		},
 		// 获取路线所有途经点坐标数组（数量不限）
 		getWaypoints(route) {
@@ -1134,6 +1161,8 @@ export default {
 		// d1 < d2 → 上班，d1 > d2 → 下班，相等 → null（走时间逻辑）
 		autoTabByLocation(lnglat) {
 			var self = this;
+			var cfg = self.sceneConfig;
+			var goRoutes = cfg.goRoutes || [];
 			function dist(a, b) {
 				var dx = a[0] - b[0];
 				var dy = a[1] - b[1];
@@ -1141,16 +1170,16 @@ export default {
 			}
 			// d1: 定位到所有上班路线起点的最小距离
 			var d1 = Infinity;
-			GO_ROUTES.forEach(function (r) {
-				var pts = getRoutePoints(r);
+			goRoutes.forEach(function (r) {
+				var pts = cfg.getRoutePoints(r);
 				if (!pts.start) return;
 				var d = dist(lnglat, pts.start.lnglat);
 				if (d < d1) d1 = d;
 			});
 			// d2: 定位到所有上班路线途经点+终点的最小距离
 			var d2 = Infinity;
-			GO_ROUTES.forEach(function (r) {
-				var pts = getRoutePoints(r);
+			goRoutes.forEach(function (r) {
+				var pts = cfg.getRoutePoints(r);
 				pts.vias.forEach(function (v) {
 					var dv = dist(lnglat, v.lnglat);
 					if (dv < d2) d2 = dv;
@@ -1477,10 +1506,11 @@ export default {
 		},
 		// 计算隐藏路段耗时（秒）：上班=隐藏点→路线起点；下班=路线终点→隐藏点
 		// 仅算耗时，不在地图显示。结果按 route.key 缓存到 hiddenDurations。
-		// HIDDEN_LEG.enabled 为 false 时直接返回 0，通用逻辑完全不受影响。
+		// 当前场景 hiddenLeg.enabled 为 false 时直接返回 0，通用逻辑完全不受影响。
 		queryHiddenLeg(route, callback) {
 			var self = this;
-			if (!HIDDEN_LEG.enabled) {
+			var hiddenLeg = self.sceneConfig.hiddenLeg;
+			if (!hiddenLeg || !hiddenLeg.enabled || !hiddenLeg.lnglat) {
 				callback(0);
 				return;
 			}
@@ -1496,11 +1526,11 @@ export default {
 			}
 			var from, to;
 			if (self.tab === 'go') {
-				from = HIDDEN_LEG.lnglat;
+				from = hiddenLeg.lnglat;
 				to = pts.start.lnglat;
 			} else {
 				from = pts.end.lnglat;
-				to = HIDDEN_LEG.lnglat;
+				to = hiddenLeg.lnglat;
 			}
 			self.planSegmentDuration(from, to, function (dur) {
 				self.$set(self.hiddenDurations, route.key, dur);
@@ -1570,20 +1600,23 @@ export default {
 			});
 		},
 		// 查询 fx67ll 专用时间信息：按上下班方向查询
-		// 上班：江浦 → 花神科技园东门；下班：花神科技园东门 → 江浦（方向不同耗时不同）
+		// 上班：起点 → 终点；下班：终点 → 起点（方向不同耗时不同）
 		queryFx67llInfo() {
 			var self = this;
 			if (!self.segDriving || !self.tab) return;
-			var toPoint = getPoint(FX67LL_INFO.toPointIndex);
+			var cfg = self.sceneConfig;
+			var info = cfg.info;
+			if (!info || !info.fromLnglat) return;
+			var toPoint = cfg.getPoint(info.toPointIndex);
 			if (!toPoint) return;
 			self.fx67llLoaded = false;
 			var from, to;
 			if (self.tab === 'go') {
-				from = FX67LL_INFO.fromLnglat;
+				from = info.fromLnglat;
 				to = toPoint.lnglat;
 			} else {
 				from = toPoint.lnglat;
-				to = FX67LL_INFO.fromLnglat;
+				to = info.fromLnglat;
 			}
 			self.planSegmentDuration(from, to, function (dur) {
 				self.fx67llDuration = dur || 0;

@@ -37,7 +37,13 @@ export const fx67llRoutes = [
   {
     path: '/daily',
     name: 'daily',
-    component: () => import('@v/DailyCommute/index.vue'), // 每日通勤用时查看页
+    component: () => import('@v/DailyCommute/index.vue'), // 每日通勤用时查看页（fx67ll 私人隐藏路由，首页不再展示入口）
+  },
+  {
+    path: '/commute',
+    name: 'commute',
+    component: () => import('@v/DailyCommute/index.vue'), // 每日通勤用时查看页（公开路由，与 /daily 共用同一页面）
+    props: { scene: 'commute' },
   },
   {
     path: '/devtest',
@@ -101,8 +107,8 @@ router.beforeEach((to, from, next) => {
     next({ name: 'index' });
     return;
   }
-  // 不显示返回按钮：首页 / 每日通勤（daily 为新页签独立页面，无需返回）/ 404（页面自带返回上一页入口，避免重复）
-  if (to.name !== 'index' && to.name !== 'daily' && to.name !== '404') {
+  // 不显示返回按钮：首页 / 每日通勤（daily、commute 均为新页签独立页面，无需返回）/ 404（页面自带返回上一页入口，避免重复）
+  if (to.name !== 'index' && to.name !== 'daily' && to.name !== 'commute' && to.name !== '404') {
     store.dispatch('setBtnStateAsync', true);
   } else {
     store.dispatch('setBtnStateAsync', false);

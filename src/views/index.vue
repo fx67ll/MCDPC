@@ -44,7 +44,7 @@
 
 			<!-- 每日通勤（独立卡片，新窗口打开） -->
 			<div class="card-grid">
-				<div class="demo-card commute" @click="openDaily">
+				<div class="demo-card commute" @click="openCommute">
 					<div class="card-icon" :style="{ background: 'linear-gradient(135deg, #42b983, #f5c542)' }">
 						<span class="icon-emoji">🚗</span>
 					</div>
@@ -181,9 +181,9 @@ export default {
 		goRoute(path) {
 			this.$router.push(path);
 		},
-		// 每日通勤：新窗口打开（生产环境访问 map.fx67ll.com/daily）
-		openDaily() {
-			var url = window.location.origin + '/daily';
+		// 每日通勤：新窗口打开（生产环境访问 map.fx67ll.com/commute）
+		openCommute() {
+			var url = window.location.origin + '/commute';
 			window.open(url, '_blank');
 		},
 		linktoFx67ll() {
