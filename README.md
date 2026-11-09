@@ -5,10 +5,10 @@ Map & Chart Data Projects Collection
 欢迎参观 [map.fx67ll.com](http://map.fx67ll.com "fx67ll's AI 大数据地图服务")  
 
 ## 0.3.6.20261109
-* 新增`每日通勤`公开访问路由`/commute`，与私人隐藏路由`/daily`共用同一套通勤功能
+* 新增`每日通勤`公开访问路由`/commute`
 * 新增`每日通勤` commute 场景独立定位配置`commuteConfig.js`，与 daily 配置完全分离，便于后续单独维护公开路由起讫点
-* 优化`每日通勤`场景配置结构，抽取坐标转换、拥堵/格式化工具与场景构建逻辑至`commuteUtils.js`，`dailyConfig.js`与`commuteConfig.js` 仅维护各自原始数据
-* 优化`首页`每日通勤入口跳转地址，由`/daily`调整为`/commute`
+* 优化`每日通勤`场景配置结构，抽取坐标转换、拥堵/格式化工具与场景构建逻辑至`commuteUtils.js`与`commuteConfig.js` 仅维护各自原始数据
+* 优化`首页`每日通勤入口跳转地址，调整为`/commute`
 
 ## 0.3.5.20260805
 * 新增`每日通勤`路线拥堵程度可视化，彩色条展示整体路况与分段拥堵
