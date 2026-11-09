@@ -37,7 +37,7 @@ const COMMUTE_ROUTES = [
   // 下班路线（起点终点对调：从咖啡店出发，途经花神，回到起始点）
   // 路线二回建设路：终点为建设路，额外途经大胜关大桥收费站·绕城出口方向(5，在花神之后)
   { key: 'back-1', name: '路线一 · 江心洲大桥', color: '#42b983', pointIndices: [6, 4, 3] },
-  { key: 'back-2', name: '路线二 · 大胜关大桥', color: '#ef6b5a', pointIndices: [6, 4, 5, 2, 1] },
+  { key: 'back-2', name: '路线二 · 大胜关大桥', color: '#ef6b5a', pointIndices: [6, 4, 5, 2, 7] },
 ];
 
 // ===== 隐藏路段配置（可选，预留基线）=====
