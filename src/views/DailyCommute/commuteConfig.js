@@ -32,12 +32,12 @@ const COMMUTE_BD_POINTS = [
 const COMMUTE_ROUTES = [
   // 上班路线（2 条，起始点不同，途经、终点相同）
   // 路线一：雨山路（主选，走五桥免费）；路线二：建设路（备选，走三桥收费）
-  { key: 'go-1', name: '路线一 · 雨山路', color: '#42b983', pointIndices: [7, 4, 6] },
-  { key: 'go-2', name: '路线二 · 建设路', color: '#ef6b5a', pointIndices: [1, 8, 4, 6] },
+  { key: 'go-1', name: '路线一 · 江心洲大桥', color: '#42b983', pointIndices: [7, 4, 6] },
+  { key: 'go-2', name: '路线二 · 大胜关大桥', color: '#ef6b5a', pointIndices: [7, 1, 8, 4, 6] },
   // 下班路线（起点终点对调：从咖啡店出发，途经花神，回到起始点）
   // 路线二回建设路：终点为建设路，额外途经大胜关大桥收费站·绕城出口方向(5，在花神之后)
-  { key: 'back-1', name: '路线一 · 回雨山路', color: '#42b983', pointIndices: [6, 4, 3] },
-  { key: 'back-2', name: '路线二 · 回建设路', color: '#ef6b5a', pointIndices: [6, 4, 5, 2] },
+  { key: 'back-1', name: '路线一 · 江心洲大桥', color: '#42b983', pointIndices: [6, 4, 3] },
+  { key: 'back-2', name: '路线二 · 大胜关大桥', color: '#ef6b5a', pointIndices: [6, 4, 5, 2, 1] },
 ];
 
 // ===== 隐藏路段配置（可选，预留基线）=====
